@@ -147,7 +147,7 @@ async function deliverDirectorDailyReport(row, branchName, cashierName, ymd, bra
       }
     }
   } catch (err) {
-    console.error('Error calculating credit sales for daily closing report:', err.message);
+    console.error('Error calculating credit sales for daily closing report:', err.message, err.stack);
     reportRow = { ...row, credit_sales: num(row?.credit_sales) };
   }
 

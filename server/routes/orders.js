@@ -2161,12 +2161,14 @@ router.post('/upload-stock-excel', requireBranchAccess(), requirePermission('can
       const serviceName = String(getVal('Service', 'service', 'Service Name') || '').trim();
       const quantity = parseInt(getVal('Quantity', 'quantity', 'Qty', 'qty') || 1);
 
-      // Receipt / CUST ID encodes the service day (printed receipt). No separate "payment date" — paid rows
-      // are historical for that day; stock is still uncollected until collection.
-      const orderDateIso =
+      // Receipt / CUST ID encodes the service day (printed receipt).
+      // Paid rows stay on that historical day (must not inflate today's cash).
+      // NOT PAID / advance rows use upload day so Credit Sales appear on today's closing.
+      const receiptOrderDateIso =
         deriveOrderDateFromReceiptId(receiptId) || getYesterdayNoonUtcIso();
+      let orderDateIso = receiptOrderDateIso;
       const estimatedCollectionIso =
-        addUtcDaysToOrderIso(orderDateIso, COLLECTION_DUE_AFTER_RECEIPT_DAYS) || null;
+        addUtcDaysToOrderIso(receiptOrderDateIso, COLLECTION_DUE_AFTER_RECEIPT_DAYS) || null;
 
       if (!receiptId || !customerName) {
         const missingFields = [];
@@ -2206,6 +2208,11 @@ router.post('/upload-stock-excel', requireBranchAccess(), requirePermission('can
           (/^(paid|yes|1|true|full)$/.test(paidStr) || paidStr === 'y');
         paidAmount = isPaid ? finalTotalAmount : 0;
         paymentStatus = isPaid ? 'paid_full' : 'not_paid';
+      }
+
+      if (paymentStatus === 'not_paid' || paymentStatus === 'advance') {
+        const todayYmd = getBusinessTodayYmd();
+        orderDateIso = `${todayYmd}T12:00:00.000Z`;
       }
 
       // Find or create customer (phone optional — can be added later on Orders screen)

@@ -436,10 +436,9 @@ async function listBookSalesCashTransactionsForDate(date, branchId) {
  * - payment_status = advance  → remaining balance (total - paid)
  * - any other open balance    → remaining balance (defensive)
  *
- * Attribution day (so stock uploads count on the day they are received into POS):
- * - order_date = closing day (normal POS / receipt day), OR
- * - created_at = closing day when receipt order_date is a different day
- *   (stock sheet uploaded today with older CUST ID / receipt dates)
+ * Day attribution uses order_date only (orders table has no created_at in Postgres).
+ * Stock-sheet NOT PAID rows set order_date to the upload business day so they land
+ * on that day's closing report.
  */
 function creditSalesAmountSql(alias = 'o') {
   return `CASE
@@ -454,38 +453,27 @@ function creditSalesAmountSql(alias = 'o') {
   END`;
 }
 
-function creditSalesDayFilterSql(alias = 'o') {
-  // Match calendar day the same way cash_sales does (DATE(...)=day), plus same-day intake.
-  return `(
-    DATE(${alias}.order_date) = ?::date
-    OR (
-      DATE(${alias}.created_at) = ?::date
-      AND DATE(${alias}.order_date) IS DISTINCT FROM ?::date
-    )
-  )`;
-}
-
 async function calculateCreditSales(date, branchId = null) {
   try {
     const amountSql = creditSalesAmountSql('o');
-    const daySql = creditSalesDayFilterSql('o');
+    // Same day filter pattern as cash_sales — do not reference columns that may not exist.
     if (branchId == null) {
       const row = await db.get(
         `SELECT COALESCE(SUM(${amountSql}), 0) AS credit_sales
          FROM orders o
-         WHERE ${daySql}
+         WHERE DATE(o.order_date) = ?::date
            ${sqlActiveOrdersOnly('o')}`,
-        [date, date, date]
+        [date]
       );
       return Number(row?.credit_sales) || 0;
     }
     const row = await db.get(
       `SELECT COALESCE(SUM(${amountSql}), 0) AS credit_sales
        FROM orders o
-       WHERE ${daySql}
+       WHERE DATE(o.order_date) = ?::date
          AND o.branch_id = ?
          ${sqlActiveOrdersOnly('o')}`,
-      [date, date, date, branchId]
+      [date, branchId]
     );
     return Number(row?.credit_sales) || 0;
   } catch (err) {
