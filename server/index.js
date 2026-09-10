@@ -69,6 +69,7 @@ if (!isProduction) {
 
 require('./database/db');
 require('./database/ensurePosCoreSchema');
+require('./database/ensureBranchFeaturesSchema');
 require('./database/ensureBankingSchema');
 require('./database/ensureNotificationsDedupeKey');
 require('./database/ensureUsersAuthSchema');
