@@ -1101,7 +1101,9 @@ router.post('/batch', authenticate, requireBranchAccess(), requirePermission('ca
   } catch (err) {
     try {
       await client.query('ROLLBACK');
-    } catch (_) {}
+    } catch (rbErr) {
+      console.error('ERROR: orders batch ROLLBACK failed:', rbErr.message);
+    }
     console.error('POST /api/orders/batch error:', err);
     res.status(500).json({ error: err.message || 'Failed to create batch order' });
   } finally {

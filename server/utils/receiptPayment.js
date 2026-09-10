@@ -225,7 +225,9 @@ async function applyReceiptPaymentAtomic({
   } catch (err) {
     try {
       await client.query('ROLLBACK');
-    } catch (_) {}
+    } catch (rbErr) {
+      console.error('ERROR: receipt payment ROLLBACK failed:', rbErr.message);
+    }
     throw err;
   } finally {
     client.release();
