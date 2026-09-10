@@ -9,6 +9,7 @@ import Loader from '../components/Loader';
 import { receiptWidthCss, receiptPadding, receiptFontSize, receiptCompactFontSize, termsQrSize, receiptBrandMargin, receiptBrandFontSize } from '../utils/receiptPrintConfig';
 import { formatCustomerReceiptId, formatReceiptForDisplay, formatBranchReceiptLine } from '../utils/receiptId';
 import { playSuccessSound } from '../utils/sound';
+import OrderDetailsModal from '../components/OrderDetailsModal';
 import './Collection.css';
 
 const roundMoney = (x) => (typeof x !== 'number' || Number.isNaN(x) ? 0 : Math.round(x * 100) / 100);
@@ -47,6 +48,7 @@ const Collection = () => {
   const [queueLoading, setQueueLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReceivePaymentModal, setShowReceivePaymentModal] = useState(false);
+  const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentDate, setPaymentDate] = useState(todayYmd());
@@ -184,11 +186,13 @@ const Collection = () => {
           setAllReceiptOrders(mainOrder.all_items);
           setOrder(mainOrder);
           setSearchedByCustomer(false);
+          setShowOrderDetailsModal(true);
           showToast(`Receipt found (${mainOrder.all_items.length} items)`, 'success');
         } else {
           setOrder(mainOrder);
           setAllReceiptOrders([mainOrder]);
           setSearchedByCustomer(false);
+          setShowOrderDetailsModal(true);
           showToast('Order found', 'success');
         }
       } catch (err) {
@@ -289,6 +293,7 @@ const Collection = () => {
         // Single item or legacy response
         setOrder(mainOrder);
         setAllReceiptOrders([mainOrder]);
+        setShowOrderDetailsModal(true);
         showToast('Order found', 'success');
       }
     } catch (err) {
@@ -383,6 +388,7 @@ const Collection = () => {
         setAllReceiptOrders(first.items);
       }
       setReceiptNumber(first.receipt_number);
+      setShowOrderDetailsModal(true);
       showToast(groups.length === 1 ? '1 receipt found' : `${groups.length} receipts found. Select one below.`, 'success');
     } catch (err) {
       const errorMsg = err.response?.data?.error || err.message || 'No orders found';
@@ -425,6 +431,7 @@ const Collection = () => {
         setAllReceiptOrders(first.items);
       }
       setReceiptNumber(first.receipt_number);
+      setShowOrderDetailsModal(true);
       showToast(groups.length === 1 ? '1 receipt' : `${groups.length} receipts`, 'success');
     } catch (err) {
       showToast('Error loading orders: ' + (err.response?.data?.error || err.message), 'error');
@@ -433,6 +440,7 @@ const Collection = () => {
 
   const handleSelectReceiptFromList = async (receiptGroup) => {
     setReceiptNumber(receiptGroup.receipt_number);
+    setShowOrderDetailsModal(true);
     try {
       const receiptRes = await getOrderByReceipt(receiptGroup.receipt_number);
       const receiptOrder = receiptRes.data;
@@ -1047,7 +1055,9 @@ Thank you for choosing SUPACLEAN!
                     className={`queue-list-card ${overdue ? 'overdue' : ''} ${isSelected ? 'selected' : ''}`}
                     onClick={() => {
                       setReceiptNumber(queueOrder.receipt_number);
+                      setAllReceiptOrders(queueOrder.all_items && queueOrder.all_items.length > 0 ? queueOrder.all_items : [queueOrder]);
                       setOrder(queueOrder);
+                      setShowOrderDetailsModal(true);
                       setShowQueue(false);
                     }}
                   >
@@ -1108,7 +1118,9 @@ Thank you for choosing SUPACLEAN!
                         className={`queue-row ${overdue ? 'overdue' : ''} ${isSelected ? 'selected' : ''}`}
                         onClick={() => {
                           setReceiptNumber(queueOrder.receipt_number);
+                          setAllReceiptOrders(queueOrder.all_items && queueOrder.all_items.length > 0 ? queueOrder.all_items : [queueOrder]);
                           setOrder(queueOrder);
+                          setShowOrderDetailsModal(true);
                           setShowQueue(false);
                         }}
                       >
@@ -1353,227 +1365,81 @@ Thank you for choosing SUPACLEAN!
                 </div>
               </div>
             )}
-        {order && (
-          <div className="order-details-card-modern">
-            {(() => {
-              const { receiptTotal, receiptPaid, balanceDue } = getReceiptTotals(order, allReceiptOrders);
-              return (
-                <div className="receipt-summary-one-line" role="status" aria-live="polite">
-                  Receipt #{formatReceiptForDisplay(order.receipt_number, allReceiptOrders.length > 0 ? allReceiptOrders : (order ? [order] : []))} · Total {formatReceiptMoney(receiptTotal)} · Due {formatReceiptMoney(balanceDue)}
-                  {receiptPaid > 0 && balanceDue > 0 && (
-                    <span className="receipt-summary-paid"> · Paid {formatReceiptMoney(receiptPaid)}</span>
-                  )}
-                </div>
-              );
-            })()}
-
-            {customerReceiptsList.length > 0 && (
-              <div className="customer-receipts-table-wrap">
-                <h3 className="receipts-table-title">All receipts for this customer</h3>
-                <div className="customer-receipts-table-scroll">
-                  <table className="customer-receipts-table">
-                    <thead>
-                      <tr>
-                        <th>Receipt No</th>
-                        <th>Order Date</th>
-                        <th>Items</th>
-                        <th>Total</th>
-                        <th>Paid</th>
-                        <th>Balance</th>
-                        <th>Status</th>
-                        <th>Collected</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {customerReceiptsList.map((rg) => {
-                        const bal = (rg.total_amount || 0) - (rg.paid_amount || 0);
-                        const isSelected = order && rg.receipt_number === order.receipt_number;
-                        return (
-                          <tr
-                            key={rg.receipt_number}
-                            className={isSelected ? 'selected-receipt-row' : ''}
-                            onClick={() => handleSelectReceiptFromList(rg)}
+        <OrderDetailsModal
+          open={showOrderDetailsModal && !!order}
+          order={order}
+          items={allReceiptOrders.length > 0 ? allReceiptOrders : (order ? [order] : [])}
+          onClose={() => setShowOrderDetailsModal(false)}
+          actions={
+            order ? (
+              <div className="collection-actions-modern">
+                {order.status === 'ready' && (
+                  <>
+                    {(() => {
+                      const { balanceDue } = getReceiptTotals(order, allReceiptOrders);
+                      return balanceDue > 0 ? (
+                        <>
+                          <button
+                            className="btn-primary btn-large"
+                            onClick={() => { setShowOrderDetailsModal(false); handleReceivePayment(); }}
+                            style={{ marginBottom: '10px' }}
                           >
-                            <td><strong>{formatReceiptForDisplay(rg.receipt_number, rg.items || [])}</strong></td>
-                            <td>{rg.order_date ? new Date(rg.order_date).toLocaleString() : '—'}</td>
-                            <td>{rg.item_count}</td>
-                            <td>TSh {(rg.total_amount || 0).toLocaleString()}</td>
-                            <td>TSh {(rg.paid_amount || 0).toLocaleString()}</td>
-                            <td>{bal > 0 ? <span className="balance-due">TSh {bal.toLocaleString()}</span> : '—'}</td>
-                            <td><span className={`status-badge status-${rg.status}`}>{rg.status}</span></td>
-                            <td>{rg.collected_date ? new Date(rg.collected_date).toLocaleString() : '—'}</td>
-                            <td><button type="button" className="btn-small btn-secondary" onClick={(e) => { e.stopPropagation(); handleSelectReceiptFromList(rg); }}>View</button></td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Partial receipt search matches (shown when the user typed only part of a receipt number) */}
-
-            <div className="order-header-modern">
-              <div>
-                <h2>Receipt: {formatReceiptForDisplay(order.receipt_number, allReceiptOrders.length > 0 ? allReceiptOrders : (order ? [order] : []))}</h2>
-                <p className="order-date">Order Date: {new Date(order.order_date).toLocaleString()}</p>
-                {order.estimated_collection_date && (
-                  <p className="order-date">Est. Collection: {new Date(order.estimated_collection_date).toLocaleString()}</p>
-                )}
-              </div>
-              <div className={`status-badge-modern status-${order.status}`}>
-                {order.status.toUpperCase()}
-              </div>
-            </div>
-
-            {!searchedByCustomer && (
-              <div className="receipt-detail-table-section">
-                <h3>👤 Customer</h3>
-                <table className="receipt-detail-table">
-                  <tbody>
-                    <tr><td>Name</td><td><strong>{order.customer_name}</strong></td></tr>
-                    <tr><td>Phone</td><td>{order.customer_phone}</td></tr>
-                    {order.customer_email && <tr><td>Email</td><td>{order.customer_email}</td></tr>}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="receipt-detail-table-section">
-              <h3>🧺 Items on Receipt</h3>
-              {(() => {
-                const allItems = (order.all_items && order.all_items.length > 0) ? order.all_items : (allReceiptOrders.length > 0 ? allReceiptOrders : [order]);
-                return (
-                  <div className="receipt-items-table-scroll">
-                    <table className="receipt-detail-table receipt-items-table">
-                      <thead>
-                        <tr><th>Item</th><th>Qty</th><th>Amount (TSh)</th></tr>
-                      </thead>
-                      <tbody>
-                        {allItems.map((item, idx) => {
-                          const itemName = item.garment_type || item.item_name || item.service_name || 'Item';
-                          const itemColor = item.color || '';
-                          const itemQty = item.quantity || 1;
-                          const itemAmount = parseFloat(item.total_amount || 0);
-                          return (
-                            <tr key={item.id || idx}>
-                              <td>{itemName}{itemColor ? ` (${itemColor})` : ''}</td>
-                              <td>{itemQty}</td>
-                              <td>{itemAmount.toLocaleString()}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div className="receipt-detail-table-section">
-              <h3>💵 Payment Information</h3>
-              {(() => {
-                const { receiptTotal, receiptPaid, balanceDue } = getReceiptTotals(order, allReceiptOrders);
-                return (
-                  <table className="receipt-detail-table">
-                    <tbody>
-                      <tr><td>Total Amount</td><td><strong>TSh {receiptTotal.toLocaleString()}</strong></td></tr>
-                      <tr><td>Amount Paid</td><td>TSh {receiptPaid.toLocaleString()}</td></tr>
-                      <tr><td>Balance Due</td><td>{balanceDue > 0 ? <span className="balance-due">TSh {balanceDue.toLocaleString()}</span> : '—'}</td></tr>
-                      <tr><td>Status</td><td>{balanceDue <= 0 ? <span style={{ color: 'var(--success-color)' }}>Fully Paid ✅</span> : 'Outstanding'}</td></tr>
-                      <tr><td>Payment Method</td><td>{order.payment_method || 'N/A'}</td></tr>
-                      {order.ready_date && <tr><td>Ready Date</td><td>{new Date(order.ready_date).toLocaleString()}</td></tr>}
-                      {order.estimated_collection_date && <tr><td>Est. Collection</td><td>{new Date(order.estimated_collection_date).toLocaleString()}</td></tr>}
-                    </tbody>
-                  </table>
-                );
-              })()}
-            </div>
-
-            {order.special_instructions && (
-              <div className="special-instructions-modern">
-                <h3>📝 Special Instructions</h3>
-                <p>{order.special_instructions}</p>
-              </div>
-            )}
-
-            <div className="collection-actions-modern">
-              {order.status === 'ready' && (
-                <>
-                  {(() => {
-                    const { balanceDue } = getReceiptTotals(order, allReceiptOrders);
-                    return balanceDue > 0 ? (
-                      <>
+                            Receive Payment
+                          </button>
+                          <button
+                            className="btn-primary btn-large"
+                            onClick={() => { setShowOrderDetailsModal(false); handleCollect(); }}
+                            disabled={collecting}
+                          >
+                            {collecting ? 'Processing...' : 'Collect Order'}
+                          </button>
+                        </>
+                      ) : (
                         <button
                           className="btn-primary btn-large"
-                          onClick={handleReceivePayment}
-                          style={{ marginBottom: '10px' }}
-                        >
-                          💰 Receive Payment
-                        </button>
-                        <button
-                          className="btn-primary btn-large"
-                          onClick={handleCollect}
+                          onClick={() => { setShowOrderDetailsModal(false); handleCollect(); }}
                           disabled={collecting}
                         >
-                          {collecting ? '⏳ Processing...' : `✅ Collect Order`}
+                          {collecting ? 'Processing...' : 'Mark as Collected'}
                         </button>
-                      </>
-                    ) : (
+                      );
+                    })()}
+                    <button className="btn-secondary" onClick={handlePrintReceipt}>
+                      Reprint Receipt
+                    </button>
+                  </>
+                )}
+                {order.status !== 'ready' && order.status !== 'collected' && (() => {
+                  const { balanceDue } = getReceiptTotals(order, allReceiptOrders);
+                  return balanceDue > 0 ? (
+                    <div className="receive-payment-early">
                       <button
                         className="btn-primary btn-large"
-                        onClick={handleCollect}
-                        disabled={collecting}
+                        onClick={() => { setShowOrderDetailsModal(false); handleReceivePayment(); }}
                       >
-                        {collecting ? '⏳ Processing...' : '✅ Mark as Collected'}
+                        Receive Payment
                       </button>
-                    );
-                  })()}
-                  <button
-                    className="btn-secondary"
-                    onClick={handlePrintReceipt}
-                  >
-                    🖨️ Reprint Receipt
-                  </button>
-                </>
-              )}
-              {order.status !== 'ready' && order.status !== 'collected' && (() => {
-                const { balanceDue } = getReceiptTotals(order, allReceiptOrders);
-                return balanceDue > 0 ? (
-                  <div className="receive-payment-early">
-                    <button
-                      className="btn-primary btn-large"
-                      onClick={handleReceivePayment}
-                    >
-                      💰 Receive Payment
+                      <small>Customer can pay now and collect items when ready.</small>
+                    </div>
+                  ) : null;
+                })()}
+                {order.status === 'collected' && (
+                  <div className="collected-notice-modern">
+                    This order was already collected on {order.collected_date ? new Date(order.collected_date).toLocaleString() : ''}
+                    <button className="btn-secondary" onClick={handlePrintReceipt}>
+                      Reprint Receipt
                     </button>
-                    <small>Customer can pay now and collect items when ready.</small>
                   </div>
-                ) : null;
-              })()}
-              {order.status === 'collected' && (
-                <div className="collected-notice-modern">
-                  ✅ This order was already collected on {new Date(order.collected_date).toLocaleString()}
-                  <button
-                    className="btn-secondary"
-                    onClick={handlePrintReceipt}
-                  >
-                    🖨️ Reprint Receipt
-                  </button>
-                </div>
-              )}
-              {order.status !== 'ready' && order.status !== 'collected' && (
-                <div className="not-ready-notice-modern">
-                  ⏳ This order is not ready for collection yet. Status: {order.status}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
+                )}
+                {order.status !== 'ready' && order.status !== 'collected' && (
+                  <div className="not-ready-notice-modern">
+                    This order is not ready for collection yet. Status: {order.status}
+                  </div>
+                )}
+              </div>
+            ) : null
+          }
+        />
       {/* Payment Modal (for collection) */}
       {showPaymentModal && order && (() => {
         const { receiptTotal, receiptPaid, balanceDue } = getReceiptTotals(order, allReceiptOrders);
