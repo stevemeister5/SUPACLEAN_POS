@@ -458,7 +458,16 @@ router.get('/search/receipt', authenticate, requireBranchAccess(), async (req, r
               c.name AS customer_name, c.phone AS customer_phone,
               MIN(o.order_date) AS order_date,
               MIN(o.estimated_collection_date) AS estimated_collection_date,
-              MAX(o.status) AS status,
+              (ARRAY_AGG(o.status ORDER BY
+                CASE o.status
+                  WHEN 'collected' THEN 7
+                  WHEN 'ready' THEN 6
+                  WHEN 'processing' THEN 5
+                  WHEN 'pending' THEN 4
+                  WHEN 'sent' THEN 3
+                  WHEN 'voided' THEN 2
+                  ELSE 1
+                END DESC))[1] AS status,
               MAX(o.collected_date) AS collected_date,
               MAX(o.payment_method) AS payment_method,
               MIN(o.ready_date) AS ready_date,
