@@ -99,7 +99,7 @@ function buildPerOrderPaidAllocations(orders, receiptPaidAmount) {
 router.use(authenticate, requireBranchFeatureAny('new_order', 'order_processing'));
 
 // Get all orders
-router.get('/', requireBranchAccess(), async (req, res) => {
+router.get('/', authenticate, requireBranchAccess(), async (req, res) => {
   const { 
     status, 
     customer_id, 
@@ -230,7 +230,7 @@ router.get('/', requireBranchAccess(), async (req, res) => {
 });
 
 // Dashboard counts (receipt-based, branch-scoped) to keep Dashboard and Orders figures consistent
-router.get('/dashboard-stats', requireBranchAccess(), async (req, res) => {
+router.get('/dashboard-stats', authenticate, requireBranchAccess(), async (req, res) => {
   const branchFilter = getBranchFilter(req, 'o');
 
   const query = `
@@ -273,7 +273,7 @@ router.get('/dashboard-stats', requireBranchAccess(), async (req, res) => {
 
 // Archive completed historical orders so active operational screens stay fast.
 // This is a soft archive: records remain available for audit/history and cash summaries.
-router.post('/archive-old', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.post('/archive-old', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'Only admins can run order archive maintenance.' });
   }
@@ -294,7 +294,7 @@ router.post('/archive-old', requireBranchAccess(), requirePermission('canManageO
 });
 
 // Get collection queue (ready orders with queue info) - grouped by receipt number. Branch-scoped; optional customer name/phone search.
-router.get('/collection-queue', requireBranchAccess(), async (req, res) => {
+router.get('/collection-queue', authenticate, requireBranchAccess(), async (req, res) => {
   const { limit = 20, overdue_only, customer } = req.query;
   const branchFilter = getBranchFilter(req, 'o');
   
@@ -395,7 +395,7 @@ router.get('/collection-queue', requireBranchAccess(), async (req, res) => {
 
 // Get order by receipt number - returns ALL items for the receipt with aggregated totals
 // Case-insensitive receipt number search
-router.get('/receipt/:receiptNumber', requireBranchAccess(), async (req, res) => {
+router.get('/receipt/:receiptNumber', authenticate, requireBranchAccess(), async (req, res) => {
   const { receiptNumber } = req.params;
   const branchFilter = getBranchFilter(req, 'o');
   
@@ -445,7 +445,7 @@ router.get('/receipt/:receiptNumber', requireBranchAccess(), async (req, res) =>
 
 // Partial receipt search (Collection page): match by any part of the receipt number.
 // Returns grouped receipt summaries so the user can disambiguate multiple matches.
-router.get('/search/receipt', requireBranchAccess(), async (req, res) => {
+router.get('/search/receipt', authenticate, requireBranchAccess(), async (req, res) => {
   const { q } = req.query;
   if (!q || !q.trim()) {
     return res.status(400).json({ error: 'Query is required' });
@@ -482,7 +482,7 @@ router.get('/search/receipt', requireBranchAccess(), async (req, res) => {
 });
 
 // Staff/manager: request void — appears in admin inbox for approve/decline
-router.post('/receipt/:receiptNumber/void-request', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.post('/receipt/:receiptNumber/void-request', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   const { receiptNumber } = req.params;
   const branchFilter = getBranchFilter(req, 'o');
   const acknowledgeReconciledDay = req.body?.acknowledge_reconciled_day === true
@@ -520,7 +520,7 @@ router.post('/receipt/:receiptNumber/void-request', requireBranchAccess(), requi
 });
 
 // Admin-only immediate void — also logs an awareness item in the admin inbox
-router.post('/receipt/:receiptNumber/void', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.post('/receipt/:receiptNumber/void', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   const { receiptNumber } = req.params;
   const branchFilter = getBranchFilter(req, 'o');
   const acknowledgeReconciledDay = req.body?.acknowledge_reconciled_day === true
@@ -575,7 +575,7 @@ router.post('/receipt/:receiptNumber/void', requireBranchAccess(), requirePermis
 });
 
 // Pending void-request status for a receipt (staff + admin)
-router.get('/receipt/:receiptNumber/void-request', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.get('/receipt/:receiptNumber/void-request', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   try {
     const item = await getPendingVoidForReceipt(req.params.receiptNumber);
     res.json({ pending: !!item, item: item || null });
@@ -586,7 +586,7 @@ router.get('/receipt/:receiptNumber/void-request', requireBranchAccess(), requir
 });
 
 // List pending void requests visible to this user (branch-scoped; admin sees all or selected branch)
-router.get('/void-requests/pending', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.get('/void-requests/pending', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   try {
     const branchId = getEffectiveBranchId(req);
     const params = [];
@@ -625,7 +625,7 @@ router.get('/void-requests/pending', requireBranchAccess(), requirePermission('c
 });
 
 // Send receipt SMS after order created and receipt printed (customer name, ID, items, amount, status)
-router.post('/receipt/:receiptNumber/send-receipt-sms', requireBranchAccess(), async (req, res) => {
+router.post('/receipt/:receiptNumber/send-receipt-sms', authenticate, requireBranchAccess(), async (req, res) => {
   const { receiptNumber } = req.params;
   const branchFilter = getBranchFilter(req, 'o');
 
@@ -728,7 +728,7 @@ router.post('/receipt/:receiptNumber/send-receipt-sms', requireBranchAccess(), a
 });
 
 // Search orders by customer phone or name
-router.get('/search/customer', requireBranchAccess(), async (req, res) => {
+router.get('/search/customer', authenticate, requireBranchAccess(), async (req, res) => {
   const { phone, name, status } = req.query;
   
   if (!phone && !name) {
@@ -778,7 +778,7 @@ router.get('/search/customer', requireBranchAccess(), async (req, res) => {
 });
 
 // Generate receipt number endpoint (for batch orders)
-router.get('/generate-receipt-number', requireBranchAccess(), async (req, res) => {
+router.get('/generate-receipt-number', authenticate, requireBranchAccess(), async (req, res) => {
   try {
     const { for_date, branch_id: branchIdParam } = req.query;
     const targetDate = for_date ? new Date(for_date) : new Date();
@@ -858,7 +858,7 @@ const IDEMPOTENCY_ROUTE_ORDERS = 'POST /api/orders';
  * Create a multi-line receipt in one atomic request (one receipt number, all items).
  * Prevents duplicate lines and wrong totals when several cashiers work at once.
  */
-router.post('/batch', requireBranchAccess(), requirePermission('canCreateOrders'), async (req, res) => {
+router.post('/batch', authenticate, requireBranchAccess(), requirePermission('canCreateOrders'), async (req, res) => {
   const idempotencyKey = readIdempotencyKey(req);
   if (idempotencyKey) {
     pruneExpiredIdempotencyKeys().catch(() => {});
@@ -1110,7 +1110,7 @@ router.post('/batch', requireBranchAccess(), requirePermission('canCreateOrders'
 });
 
 // Create new order (cashiers, managers, and admins can create)
-router.post('/', requireBranchAccess(), requirePermission('canCreateOrders'), async (req, res) => {
+router.post('/', authenticate, requireBranchAccess(), requirePermission('canCreateOrders'), async (req, res) => {
   try {
     const idempotencyKey = readIdempotencyKey(req);
     if (idempotencyKey) {
@@ -1406,7 +1406,7 @@ router.post('/', requireBranchAccess(), requirePermission('canCreateOrders'), as
 });
 
 // Update order status (managers, processors, and admins can update)
-router.put('/:id/status', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.put('/:id/status', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -1584,7 +1584,7 @@ router.put('/:id/status', requireBranchAccess(), requirePermission('canManageOrd
 });
 
 // Update estimated collection date (managers, processors, and admins can update)
-router.put('/:id/estimated-collection-date', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.put('/:id/estimated-collection-date', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   const { id } = req.params;
   const { estimated_collection_date } = req.body;
 
@@ -1628,7 +1628,7 @@ router.put('/:id/estimated-collection-date', requireBranchAccess(), requirePermi
 
 // Collect order (by receipt number) with optional payment (cashiers, managers, processors, and admins can collect)
 // This endpoint handles ALL items on a receipt together - collects the entire receipt, not individual items
-router.post('/collect/:receiptNumber', requireBranchFeature('collection'), requireBranchAccess(), requireAnyPermission('canCollect', 'canManageOrders'), async (req, res) => {
+router.post('/collect/:receiptNumber', authenticate, requireBranchFeature('collection'), requireBranchAccess(), requireAnyPermission('canCollect', 'canManageOrders'), async (req, res) => {
   const { receiptNumber } = req.params;
   const { payment_amount, payment_method = 'cash', payment_date, notes } = req.body;
 
@@ -1721,7 +1721,7 @@ router.post('/collect/:receiptNumber', requireBranchFeature('collection'), requi
 });
 
 // Receive payment for an order (without collecting) - uses RECEIPT-level totals for multi-item receipts
-router.post('/:id/receive-payment', requireBranchAccess(), requirePermission('canManageCash'), async (req, res) => {
+router.post('/:id/receive-payment', authenticate, requireBranchAccess(), requirePermission('canManageCash'), async (req, res) => {
   const { id } = req.params;
   const { payment_amount, payment_method = 'cash', payment_date, notes } = req.body;
 
@@ -1867,7 +1867,7 @@ function addUtcDaysToOrderIso(orderDateIso, daysToAdd) {
 }
 
 // Add or update customer phone from Orders screen (managers with canManageOrders)
-router.patch('/customer/:customerId/phone', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.patch('/customer/:customerId/phone', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   const { customerId } = req.params;
   const { phone } = req.body;
 
@@ -1918,7 +1918,7 @@ router.patch('/customer/:customerId/phone', requireBranchAccess(), requirePermis
 });
 
 // Upload Excel file and import stock/orders
-router.post('/upload-stock-excel', requireBranchAccess(), requirePermission('canManageOrders'), upload.single('file'), async (req, res) => {
+router.post('/upload-stock-excel', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -2431,7 +2431,7 @@ router.get('/notifications', authenticate, requireBranchAccess(), async (req, re
 });
 
 // Manually send notification
-router.post('/:id/send-notification', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.post('/:id/send-notification', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   const { id } = req.params;
   const { notification_type = 'ready' } = req.body;
   
@@ -2543,7 +2543,7 @@ router.post('/:id/send-notification', requireBranchAccess(), requirePermission('
 });
 
 // Send collection reminder for a specific order
-router.post('/:id/send-reminder', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.post('/:id/send-reminder', authenticate, requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   const { id } = req.params;
   const { channels = ['sms'] } = req.body;
   const { sendCollectionReminder } = require('../utils/notifications');
