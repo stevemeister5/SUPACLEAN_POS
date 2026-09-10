@@ -4,6 +4,7 @@ const db = require('../database/query');
 const { authenticate, requireBranchAccess } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permissions');
 const { getBranchFilter } = require('../utils/branchFilter');
+const { roundMoney, roundCents } = require('../utils/money');
 
 function generateBillNumber() {
   const y = new Date().getFullYear();
@@ -11,10 +12,6 @@ function generateBillNumber() {
   const d = String(new Date().getDate()).padStart(2, '0');
   const r = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `BIL-${y}-${m}-${d}-${r}`;
-}
-
-function roundMoney(x) {
-  return typeof x === 'number' && !Number.isNaN(x) ? Math.round(x * 100) / 100 : 0;
 }
 
 // List bills

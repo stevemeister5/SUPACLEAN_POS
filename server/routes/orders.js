@@ -25,6 +25,7 @@ const { authenticate, requireBranchAccess, requireBranchFeature, requireBranchFe
 const { requirePermission, requireAnyPermission } = require('../middleware/permissions');
 const { getBranchFilter, getEffectiveBranchId } = require('../utils/branchFilter');
 const { validatePayment } = require('../utils/paymentValidation');
+const { roundMoney, roundFigure } = require('../utils/money');
 const { recordPaymentTransaction, recordPaymentTransactionClient, logPaymentChange, logPaymentChangeClient } = require('../utils/paymentTransactions');
 const { applyReceiptPaymentAtomic } = require('../utils/receiptPayment');
 const { parseArchiveOptions, archiveOldOrders: runArchiveOldOrders } = require('../utils/archiveOldOrders');
@@ -57,9 +58,6 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 const upload = multer({ dest: uploadsDir });
-
-const roundMoney = (x) => (typeof x !== 'number' || Number.isNaN(x) ? 0 : Math.round(x * 100) / 100);
-const roundFigure = (x) => (typeof x !== 'number' || Number.isNaN(x) ? 0 : Math.round(x));
 
 function paymentBookDateYmd(paymentDate) {
   return typeof paymentDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(paymentDate.trim())

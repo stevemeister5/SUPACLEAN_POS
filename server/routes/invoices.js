@@ -5,6 +5,7 @@ const { authenticate, requireBranchAccess } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permissions');
 const { getBranchFilter } = require('../utils/branchFilter');
 const { sendInvoiceReminder } = require('../utils/notifications');
+const { roundMoney, roundCents } = require('../utils/money');
 
 const TAX_RATE = 0.18;
 
@@ -13,10 +14,6 @@ function generateInvoiceNumber() {
   const m = String(new Date().getMonth() + 1).padStart(2, '0');
   const r = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `INV-${y}-${m}-${r}`;
-}
-
-function roundMoney(x) {
-  return typeof x === 'number' && !Number.isNaN(x) ? Math.round(x * 100) / 100 : 0;
 }
 
 // List invoices
@@ -214,7 +211,7 @@ router.post('/', authenticate, requireBranchAccess(), requirePermission('canCrea
     const disc = roundMoney(parseFloat(discount || 0));
     const cred = roundMoney(parseFloat(credit_amount || 0));
     const afterDisc = Math.max(0, subtotal - disc - cred);
-    const taxAmount = roundMoney(afterDisc * TAX_RATE);
+    const taxAmount = roundMoney(roundCents(afterDisc * TAX_RATE));
     const totalAmount = roundMoney(afterDisc + taxAmount);
     const dueDate = new Date(period_end);
     dueDate.setDate(dueDate.getDate() + 30);

@@ -4,6 +4,7 @@ const db = require('../database/query');
 const { authenticate, requireBranchAccess } = require('../middleware/auth');
 const { requireCleaningAccess } = require('../middleware/auth');
 const { getBranchFilter } = require('../utils/branchFilter');
+const { roundMoney } = require('../utils/money');
 
 router.use(authenticate, requireBranchAccess(), requireCleaningAccess());
 
@@ -12,10 +13,6 @@ function generateDocumentNumber(prefix) {
   const m = String(new Date().getMonth() + 1).padStart(2, '0');
   const r = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `${prefix}-${y}-${m}-${r}`;
-}
-
-function roundMoney(x) {
-  return typeof x === 'number' && !Number.isNaN(x) ? Math.round(x * 100) / 100 : 0;
 }
 
 // Financial summary for cleaning (income from payments, expenses) - independent from laundry
