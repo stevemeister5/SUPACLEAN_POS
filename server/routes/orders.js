@@ -1733,6 +1733,7 @@ router.post('/collect/:receiptNumber', authenticate, requireBranchFeature('colle
 
 // Receive payment for an order (without collecting) - uses RECEIPT-level totals for multi-item receipts
 router.post('/:id/receive-payment', authenticate, requireBranchAccess(), requirePermission('canManageCash'), async (req, res) => {
+  // NOTE: :id is the numeric order id (client sends order.id); the payment itself applies receipt-wide via applyReceiptPaymentAtomic.
   const { id } = req.params;
   const { payment_amount, payment_method = 'cash', payment_date, notes } = req.body;
 
