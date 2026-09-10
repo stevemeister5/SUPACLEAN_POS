@@ -469,7 +469,7 @@ router.get('/search/receipt', authenticate, requireBranchAccess(), async (req, r
                   ELSE 1
                 END DESC))[1] AS status,
               MAX(o.collected_date) AS collected_date,
-              MAX(o.payment_method) AS payment_method,
+              (ARRAY_AGG(o.payment_method ORDER BY o.id DESC))[1] AS payment_method,
               MIN(o.ready_date) AS ready_date,
               SUM(o.total_amount) AS total_amount,
               SUM(o.paid_amount) AS paid_amount,
