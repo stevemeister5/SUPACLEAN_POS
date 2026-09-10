@@ -21,7 +21,7 @@ router.get('/', authenticate, async (req, res) => {
     `;
     let params = [req.user.branchId || null];
     
-    if (!req.user.role === 'admin' || include_inactive !== 'true') {
+    if (req.user.role !== 'admin' || include_inactive !== 'true') {
       query += ' AND i.is_active = TRUE';
     }
     
