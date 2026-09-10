@@ -107,7 +107,7 @@ const Layout = ({ children }) => {
       label: 'Counter',
       items: [
         { path: '/new-order', label: 'New Order', icon: '➕', permission: 'canCreateOrders', feature: 'new_order' },
-        { path: '/collection', label: 'Collection', icon: '✅', permission: 'canManageOrders', feature: 'collection' },
+        { path: '/collection', label: 'Collection', icon: '✅', permission: 'canCollect', feature: 'collection' },
       ]
     },
     {
