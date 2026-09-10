@@ -802,7 +802,7 @@ router.get('/generate-receipt-number', requireBranchAccess(), async (req, res) =
 });
 
 // Generate QR code for receipt
-router.get('/receipt/:receiptNumber/qrcode', async (req, res) => {
+router.get('/receipt/:receiptNumber/qrcode', authenticate, requireBranchAccess(), async (req, res) => {
   const { receiptNumber } = req.params;
   
   try {
@@ -2398,7 +2398,7 @@ router.post('/upload-stock-excel', requireBranchAccess(), requirePermission('can
 });
 
 // Get notification history for an order or customer
-router.get('/notifications', async (req, res) => {
+router.get('/notifications', authenticate, requireBranchAccess(), async (req, res) => {
   const { order_id, customer_id, limit = 50 } = req.query;
   
   let query = `
