@@ -22,7 +22,7 @@ const {
 } = require('../utils/sms');
 const { sendSmsWithWhatsAppFallback } = require('../utils/notifications');
 const { authenticate, requireBranchAccess, requireBranchFeature, requireBranchFeatureAny } = require('../middleware/auth');
-const { requirePermission } = require('../middleware/permissions');
+const { requirePermission, requireAnyPermission } = require('../middleware/permissions');
 const { getBranchFilter, getEffectiveBranchId } = require('../utils/branchFilter');
 const { validatePayment } = require('../utils/paymentValidation');
 const { recordPaymentTransaction, recordPaymentTransactionClient, logPaymentChange, logPaymentChangeClient } = require('../utils/paymentTransactions');
@@ -1628,9 +1628,9 @@ router.put('/:id/estimated-collection-date', requireBranchAccess(), requirePermi
   }
 });
 
-// Collect order (by receipt number) with optional payment (managers, processors, and admins can collect)
+// Collect order (by receipt number) with optional payment (cashiers, managers, processors, and admins can collect)
 // This endpoint handles ALL items on a receipt together - collects the entire receipt, not individual items
-router.post('/collect/:receiptNumber', requireBranchFeature('collection'), requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
+router.post('/collect/:receiptNumber', requireBranchFeature('collection'), requireBranchAccess(), requireAnyPermission('canCollect', 'canManageOrders'), async (req, res) => {
   const { receiptNumber } = req.params;
   const { payment_amount, payment_method = 'cash', payment_date, notes } = req.body;
 

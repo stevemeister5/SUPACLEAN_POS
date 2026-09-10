@@ -13,6 +13,7 @@ const ROLE_PERMISSIONS = {
     canViewAllBranches: true,
     canManageOrders: true,        // Can edit/update/delete orders
     canCreateOrders: true,         // Can create new orders
+    canCollect: true,              // Can collect ready receipts
     canViewReports: true,          // Can view all reports
     canManageCash: true,           // Can manage daily cash and reconciliation
     canReconcile: true,            // Can lock a day and send director closing report
@@ -29,6 +30,7 @@ const ROLE_PERMISSIONS = {
     canViewAllBranches: false,
     canManageOrders: true,        // Can edit/update order status
     canCreateOrders: true,         // Can create new orders
+    canCollect: true,              // Can collect ready receipts
     canViewReports: true,          // Can view reports for their branch
     canManageCash: true,           // Can manage daily cash for their branch
     canReconcile: true,            // Branch managers close the day
@@ -45,6 +47,7 @@ const ROLE_PERMISSIONS = {
     canViewAllBranches: false,
     canManageOrders: false,        // Cannot edit/update order status
     canCreateOrders: true,         // Can create new orders
+    canCollect: true,              // Can collect ready receipts (front-office handoff)
     canViewReports: false,         // Limited reports (only their own transactions)
     canManageCash: true,           // Can record payments / opening / deposits
     canReconcile: false,           // Day lock + director report is manager+
@@ -61,6 +64,7 @@ const ROLE_PERMISSIONS = {
     canViewAllBranches: false,
     canManageOrders: true,         // Can update order status (ready, collected)
     canCreateOrders: false,        // Cannot create orders
+    canCollect: true,              // Can hand off ready receipts
     canViewReports: false,         // Cannot view reports
     canManageCash: false,          // Cannot manage cash
     canReconcile: false,
