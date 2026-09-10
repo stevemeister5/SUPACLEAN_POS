@@ -29,6 +29,14 @@ const db = require('./query');
       'CREATE INDEX IF NOT EXISTS idx_transactions_branch_date ON transactions(branch_id, transaction_date DESC)',
       []
     );
+    await db.run(
+      'CREATE INDEX IF NOT EXISTS idx_orders_receipt_number ON orders (receipt_number)',
+      []
+    );
+    await db.run(
+      'CREATE INDEX IF NOT EXISTS idx_orders_receipt_number_lower ON orders (lower(receipt_number))',
+      []
+    );
   } catch (err) {
     console.error('ensurePerformanceIndexes failed:', err.message);
   }
