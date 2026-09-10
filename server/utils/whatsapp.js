@@ -196,7 +196,7 @@ async function sendWhatsApp(phone, message, options = {}) {
         };
         if (!config.phoneNumberId || !config.accessToken) {
           // Log but don't fail (for development). Return success: false so callers know nothing was sent.
-          console.log(`📱 WhatsApp (not sent - no API credentials): ${formatPhoneNumber(phone)}`);
+          console.log(`SMS:  WhatsApp (not sent - no API credentials): ${formatPhoneNumber(phone)}`);
           console.log(`Message: ${message}`);
           
           if (notificationId) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getOrderByReceipt, collectOrder, receivePayment, searchCustomers, searchOrdersByCustomer, getCollectionQueue } from '../api/api';
+import { getOrderByReceipt, collectOrder, receivePayment, searchCustomers, searchOrdersByCustomer, getCollectionQueue, searchReceipts } from '../api/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
 import { useListViewPreference } from '../hooks/useListViewPreference';
@@ -62,6 +62,7 @@ const Collection = () => {
   const [queueSearch, setQueueSearch] = useState('');
   const [queueSearchDebounced, setQueueSearchDebounced] = useState('');
   const [customerReceiptsList, setCustomerReceiptsList] = useState([]); // All receipts for current customer (when searched by customer)
+  const [receiptSearchResults, setReceiptSearchResults] = useState([]); // Partial receipt search matches (Collection)
   const [showCollectConfirmModal, setShowCollectConfirmModal] = useState(false);
   const [pendingCollectPaymentData, setPendingCollectPaymentData] = useState(null);
   const searchInputRef = useRef(null);
@@ -168,6 +169,7 @@ const Collection = () => {
       setError('');
       setOrder(null);
       setCustomerReceiptsList([]);
+      setReceiptSearchResults([]);
       setShowAutocomplete(false);
       try {
         const singleRes = await getOrderByReceipt(r.trim());
@@ -262,6 +264,7 @@ const Collection = () => {
     setOrder(null);
     setSearchedByCustomer(false);
     setCustomerReceiptsList([]);
+    setReceiptSearchResults([]);
     setShowAutocomplete(false);
 
     try {
@@ -289,11 +292,39 @@ const Collection = () => {
         showToast('Order found', 'success');
       }
     } catch (err) {
-      const errorMsg = err.response?.data?.error || 'Order not found';
-      setError(errorMsg);
-      showToast(errorMsg, 'error');
-      setOrder(null);
-      setAllReceiptOrders([]);
+      // Exact match failed — fall back to partial search so a partial receipt
+      // number (e.g. the last 4 digits) can still surface matching receipts.
+      if (err.response && err.response.status === 404) {
+        try {
+          const partialRes = await searchReceipts(receiptNumber.trim());
+          const matches = partialRes.data || [];
+          if (matches.length === 0) {
+            setError('Receipt not found');
+            showToast('Receipt not found', 'error');
+          } else if (matches.length === 1) {
+            // Single partial match — load it directly
+            setReceiptSearchResults([]);
+            await handleSelectReceiptFromList(matches[0]);
+            return;
+          } else {
+            setReceiptSearchResults(matches);
+            setOrder(null);
+            showToast(`${matches.length} matching receipts found. Select one below.`, 'success');
+          }
+          setAllReceiptOrders([]);
+        } catch (searchErr) {
+          setError('Receipt not found');
+          showToast('Receipt not found', 'error');
+          setOrder(null);
+          setAllReceiptOrders([]);
+        }
+      } else {
+        const errorMsg = err.response?.data?.error || 'Order not found';
+        setError(errorMsg);
+        showToast(errorMsg, 'error');
+        setOrder(null);
+        setAllReceiptOrders([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -1286,6 +1317,42 @@ Thank you for choosing SUPACLEAN!
           </div>
         )}
 
+
+            {receiptSearchResults.length > 0 && (
+              <div className="customer-receipts-table-wrap">
+                <h3 className="receipts-table-title">{receiptSearchResults.length} matching receipts found. Select one below.</h3>
+                <div className="customer-receipts-table-scroll">
+                  <table className="customer-receipts-table">
+                    <thead>
+                      <tr>
+                        <th>Receipt No</th>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Order Date</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {receiptSearchResults.map((rg) => (
+                        <tr key={rg.receipt_number} onClick={() => handleSelectReceiptFromList(rg)}>
+                          <td><strong>{formatReceiptForDisplay(rg.receipt_number, [])}</strong></td>
+                          <td>{rg.customer_name || '—'}</td>
+                          <td>{rg.customer_phone || '—'}</td>
+                          <td>{rg.order_date ? new Date(rg.order_date).toLocaleDateString() : '—'}</td>
+                          <td>{rg.item_count}</td>
+                          <td>TSh {(rg.total_amount || 0).toLocaleString()}</td>
+                          <td><span className={`status-badge status-${rg.status}`}>{rg.status}</span></td>
+                          <td><button type="button" className="btn-small btn-secondary" onClick={(e) => { e.stopPropagation(); handleSelectReceiptFromList(rg); }}>View</button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
         {order && (
           <div className="order-details-card-modern">
             {(() => {
@@ -1345,6 +1412,8 @@ Thank you for choosing SUPACLEAN!
                 </div>
               </div>
             )}
+
+            {/* Partial receipt search matches (shown when the user typed only part of a receipt number) */}
 
             <div className="order-header-modern">
               <div>

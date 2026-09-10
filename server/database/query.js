@@ -31,11 +31,11 @@ let loggedPoolConnect = false;
 dbPool.on('connect', () => {
   if (loggedPoolConnect) return;
   loggedPoolConnect = true;
-  console.log('✅ Connected to PostgreSQL database');
+  console.log('OK:  Connected to PostgreSQL database');
 });
 
 dbPool.on('error', (err) => {
-  console.error('❌ Unexpected error on idle PostgreSQL client', err);
+  console.error('ERROR:  Unexpected error on idle PostgreSQL client', err);
   // Keep API process alive on transient pool/client faults.
   // Individual queries will still fail fast and surface meaningful errors.
 });

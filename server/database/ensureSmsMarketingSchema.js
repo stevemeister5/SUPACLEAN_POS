@@ -60,9 +60,9 @@ const db = require('./query');
       []
     );
 
-    console.log('✅ sms marketing schema ready');
+    console.log('OK:  sms marketing schema ready');
   } catch (err) {
-    console.error('❌ ensureSmsMarketingSchema failed:', err.message);
+    console.error('ERROR:  ensureSmsMarketingSchema failed:', err.message);
   }
 })();
 

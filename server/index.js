@@ -77,9 +77,12 @@ require('./database/ensureCleaningSchema');
 require('./database/ensureOrderVoidSchema');
 require('./database/ensureOrderArchiveSchema');
 require('./database/ensureAdminInboxSchema');
+require('./database/ensureReceiptSequenceSchema');
+require('./database/ensureItemsSchema');
 require('./database/ensurePerformanceIndexes');
 require('./database/ensureLongevitySchema');
 require('./database/ensureSmsMarketingSchema');
+require('./database/ensureMonthlyBillingSchema');
 
 try {
   app.use('/api/auth', require('./routes/auth'));
@@ -111,9 +114,9 @@ try {
   app.use('/api/admin/sms-marketing', require('./routes/adminSmsMarketing'));
   app.use('/api/admin/inbox', require('./routes/adminInbox'));
   app.use('/api/admin', require('./routes/auditExport'));
-  console.log('✅ All routes loaded successfully');
+  console.log('OK:  All routes loaded successfully');
 } catch (error) {
-  console.error('❌ Error loading routes:', error);
+  console.error('ERROR:  Error loading routes:', error);
   console.error('Stack trace:', error.stack);
   process.exit(1);
 }
@@ -121,7 +124,9 @@ try {
 app.get('/api/health', async (req, res) => {
   const started = Date.now();
   try {
-    const db = require('./database/query');
+    // Use the single database entry point: resolves to SQLite locally or
+    // PostgreSQL when DATABASE_URL is set (query.js alone would fail on SQLite).
+    const db = require('./database/db');
     await db.get('SELECT 1 AS ok', []);
     res.json({
       status: 'OK',
@@ -164,7 +169,7 @@ if (isProduction) {
   const buildDir = path.join(__dirname, '../client/build');
   const fs = require('fs');
   if (!fs.existsSync(path.join(buildDir, 'index.html'))) {
-    console.error('❌ Frontend build missing. Run Build Command: npm run build:render');
+    console.error('ERROR:  Frontend build missing. Run Build Command: npm run build:render');
     console.error('   Expected: client/build/index.html');
   }
   app.use(express.static(buildDir));
@@ -193,13 +198,13 @@ app.use((err, req, res, next) => {
 });
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 SUPACLEAN POS Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(` SUPACLEAN POS Server running on port ${PORT}`);
+  console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} is already in use. Please kill the process or use a different port.`);
+    console.error(`ERROR:  Port ${PORT} is already in use. Please kill the process or use a different port.`);
     console.error(`Run: npm run kill-port`);
     process.exit(1);
   } else {

@@ -445,6 +445,44 @@ router.get('/receipt/:receiptNumber', requireBranchAccess(), async (req, res) =>
   }
 });
 
+// Partial receipt search (Collection page): match by any part of the receipt number.
+// Returns grouped receipt summaries so the user can disambiguate multiple matches.
+router.get('/search/receipt', requireBranchAccess(), async (req, res) => {
+  const { q } = req.query;
+  if (!q || !q.trim()) {
+    return res.status(400).json({ error: 'Query is required' });
+  }
+  const branchFilter = getBranchFilter(req, 'o');
+  const term = `%${q.trim()}%`;
+  try {
+    const rows = await db.all(
+      `SELECT o.receipt_number,
+              c.name AS customer_name, c.phone AS customer_phone,
+              MIN(o.order_date) AS order_date,
+              MIN(o.estimated_collection_date) AS estimated_collection_date,
+              MAX(o.status) AS status,
+              MAX(o.collected_date) AS collected_date,
+              MAX(o.payment_method) AS payment_method,
+              MIN(o.ready_date) AS ready_date,
+              SUM(o.total_amount) AS total_amount,
+              SUM(o.paid_amount) AS paid_amount,
+              COUNT(o.id)::int AS item_count
+       FROM orders o
+       JOIN customers c ON o.customer_id = c.id
+       WHERE UPPER(o.receipt_number) LIKE UPPER(?)
+       ${branchFilter.clause}
+       GROUP BY o.receipt_number, c.name, c.phone
+       ORDER BY MIN(o.id) DESC
+       LIMIT 20`,
+      [term, ...branchFilter.params]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Error searching receipts:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Staff/manager: request void — appears in admin inbox for approve/decline
 router.post('/receipt/:receiptNumber/void-request', requireBranchAccess(), requirePermission('canManageOrders'), async (req, res) => {
   const { receiptNumber } = req.params;
@@ -970,8 +1008,8 @@ router.post('/batch', requireBranchAccess(), requirePermission('canCreateOrders'
           receipt_number, customer_id, service_id, quantity, weight_kg, color, garment_type,
           special_instructions, delivery_type, express_surcharge_multiplier, total_amount,
           paid_amount, payment_status, payment_method, created_by, order_date,
-          estimated_collection_date, branch_id
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+          estimated_collection_date, branch_id, item_id
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
         RETURNING id`,
         [
           sharedReceiptNumber,
@@ -992,6 +1030,7 @@ router.post('/batch', requireBranchAccess(), requirePermission('canCreateOrders'
           finalOrderDateIso,
           estimated_collection_date || null,
           orderBranchId,
+          line.item_id ? parseInt(line.item_id, 10) : null,
         ]
       );
 
@@ -1217,7 +1256,7 @@ router.post('/', requireBranchAccess(), requirePermission('canCreateOrders'), as
           if (final_paid_amount > 0 && payment_status === 'advance') {
             recordPaymentTransaction(orderObj, final_paid_amount, payment_method || 'cash', created_by || 'System')
               .then((transactionId) => {
-                console.log(`✅ Payment transaction recorded: Transaction ID ${transactionId} for Order ${orderId}`);
+                console.log(`OK:  Payment transaction recorded: Transaction ID ${transactionId} for Order ${orderId}`);
               })
               .catch((err) => {
                 console.error('Error recording payment transaction:', err);
@@ -1513,24 +1552,24 @@ router.put('/:id/status', requireBranchAccess(), requirePermission('canManageOrd
                 receiptNumber: orderWithCustomer.receipt_number
               }).then(result => {
                 if (result.skippedDuplicate) {
-                  console.log(`📱 Ready SMS skipped (duplicate window) for receipt ${orderWithCustomer.receipt_number}`);
+                  console.log(`SMS:  Ready SMS skipped (duplicate window) for receipt ${orderWithCustomer.receipt_number}`);
                 } else if (result?.smsSuppressed) {
                   console.log(
-                    `📱 Ready SMS suppressed (globally disabled) for receipt ${orderWithCustomer.receipt_number}`
+                    `SMS:  Ready SMS suppressed (globally disabled) for receipt ${orderWithCustomer.receipt_number}`
                   );
                 } else if (result.success) {
-                  console.log(`✅ Ready notification sent via ${result.channel || 'sms'} to ${orderWithCustomer.customer_phone} for receipt ${orderWithCustomer.receipt_number}`);
+                  console.log(`OK:  Ready notification sent via ${result.channel || 'sms'} to ${orderWithCustomer.customer_phone} for receipt ${orderWithCustomer.receipt_number}`);
                 } else {
-                  console.error(`❌ Failed to send to ${orderWithCustomer.customer_phone}:`, result.error);
+                  console.error(`ERROR:  Failed to send to ${orderWithCustomer.customer_phone}:`, result.error);
                 }
               }).catch(err => {
-                console.error(`❌ Error sending ready notification:`, err);
+                console.error(`ERROR:  Error sending ready notification:`, err);
               });
             } else {
-              console.log(`📩 Ready notification already sent for receipt ${orderWithCustomer.receipt_number}; skipping duplicate.`);
+              console.log(`MAIL:  Ready notification already sent for receipt ${orderWithCustomer.receipt_number}; skipping duplicate.`);
             }
           } else if (!smsEnabled) {
-            console.log(`📱 SMS notifications disabled for customer ${orderWithCustomer.customer_name}`);
+            console.log(`SMS:  SMS notifications disabled for customer ${orderWithCustomer.customer_name}`);
           }
         }
       } catch (smsErr) {
@@ -1630,7 +1669,7 @@ router.post('/collect/:receiptNumber', requireBranchFeature('collection'), requi
 
     const { firstOrder, receiptTotal, receiptPaid, paymentAmount, transactionId, itemCount } = txResult.data;
     if (transactionId) {
-      console.log(`✅ Payment transaction recorded: Transaction ID ${transactionId} for Receipt ${receiptNumber}`);
+      console.log(`OK:  Payment transaction recorded: Transaction ID ${transactionId} for Receipt ${receiptNumber}`);
       triggerDailySummaryRefreshAsync(paymentTimestampIso.slice(0, 10), firstOrder.branch_id);
     }
 
@@ -1639,7 +1678,7 @@ router.post('/collect/:receiptNumber', requireBranchFeature('collection'), requi
         const { awardPointsOnCollection } = require('./loyalty');
         const loyaltyResult = await awardPointsOnCollection(firstOrder.customer_id, firstOrder.id, receiptTotal);
         console.log(
-          `✅ Loyalty points awarded: ${loyaltyResult?.points_earned ?? 0} points to customer ${firstOrder.customer_id}`
+          `OK:  Loyalty points awarded: ${loyaltyResult?.points_earned ?? 0} points to customer ${firstOrder.customer_id}`
         );
       } catch (err) {
         console.error('Error awarding loyalty points:', err);
@@ -1746,7 +1785,7 @@ router.post('/:id/receive-payment', requireBranchAccess(), requirePermission('ca
     const { receiptTotal, receiptPaid, paymentAmount, transactionId, itemCount } = txResult.data;
     if (transactionId) {
       console.log(
-        `✅ Payment transaction recorded: Transaction ID ${transactionId} for Receipt ${order.receipt_number} (${itemCount} items)`
+        `OK:  Payment transaction recorded: Transaction ID ${transactionId} for Receipt ${order.receipt_number} (${itemCount} items)`
       );
       triggerDailySummaryRefreshAsync(paymentTimestampIso.slice(0, 10), order.branch_id);
     }

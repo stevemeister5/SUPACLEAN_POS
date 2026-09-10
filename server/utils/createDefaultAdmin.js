@@ -16,7 +16,7 @@ function createDefaultAdmin() {
     }
 
     if (existingUser) {
-      console.log('✅ Admin user already exists');
+      console.log('OK:  Admin user already exists');
       return;
     }
 
@@ -44,10 +44,10 @@ function createDefaultAdmin() {
               return;
             }
 
-            console.log('✅ Default admin user created');
+            console.log('OK:  Default admin user created');
             console.log('   Username: admin');
             console.log('   Password: admin123');
-            console.log('   ⚠️  Please change the password after first login!');
+            console.log('   WARN: ️  Please change the password after first login!');
           }
         );
       });

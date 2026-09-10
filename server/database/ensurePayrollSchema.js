@@ -135,9 +135,9 @@ async function ensure() {
       console.warn('payroll_periods backfill skipped:', e.message);
     }
 
-    console.log('✅ Payroll and accounting schema ready');
+    console.log('OK:  Payroll and accounting schema ready');
   } catch (err) {
-    console.error('❌ Payroll schema migration error:', err.message);
+    console.error('ERROR:  Payroll schema migration error:', err.message);
   }
 }
 

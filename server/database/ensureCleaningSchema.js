@@ -215,9 +215,9 @@ async function ensure() {
       WHERE balance_due IS NULL AND total_amount IS NOT NULL
     `);
 
-    console.log('✅ Cleaning services schema ready');
+    console.log('OK:  Cleaning services schema ready');
   } catch (err) {
-    console.error('❌ Cleaning services schema migration error:', err.message);
+    console.error('ERROR:  Cleaning services schema migration error:', err.message);
   }
 }
 

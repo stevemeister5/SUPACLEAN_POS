@@ -9,6 +9,22 @@ client/node_modules/
 # Database
 database/*.db
 database/*.sqlite
+database/*.db-shm
+database/*.db-wal
+
+# Python helper scripts
+_emoji_scan.py
+_find_survivor.py
+_fix_line.py
+_strip_server_emoji.py
+
+# Scripts
+scripts/seed-10k.js
+scripts/seed-invoices-data.js
+scripts/seed-invoices.js
+
+# Task tracking
+TASK.md
 
 # Build outputs
 client/build/

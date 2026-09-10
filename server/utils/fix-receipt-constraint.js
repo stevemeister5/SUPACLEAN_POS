@@ -6,7 +6,7 @@
 const db = require('../database/db');
 const path = require('path');
 
-console.log('🔍 Checking database for UNIQUE constraints on receipt_number...\n');
+console.log('SCAN:  Checking database for UNIQUE constraints on receipt_number...\n');
 
 // Check table schema
 db.all("PRAGMA table_info(orders)", [], (err, columns) => {
@@ -17,7 +17,7 @@ db.all("PRAGMA table_info(orders)", [], (err, columns) => {
   
   const receiptColumn = columns.find(col => col.name === 'receipt_number');
   if (receiptColumn) {
-    console.log('📋 receipt_number column info:');
+    console.log('CHECK:  receipt_number column info:');
     console.log('   Type:', receiptColumn.type);
     console.log('   NotNull:', receiptColumn.notnull);
     console.log('   DefaultValue:', receiptColumn.dflt_value);
@@ -31,7 +31,7 @@ db.all("PRAGMA table_info(orders)", [], (err, columns) => {
       process.exit(1);
     }
     
-    console.log('\n📑 Indexes on orders table:');
+    console.log('\nDOC: Indexes on orders table:');
     if (indexes.length === 0) {
       console.log('   No indexes found (this is good - no UNIQUE constraint)');
     } else {
@@ -46,14 +46,14 @@ db.all("PRAGMA table_info(orders)", [], (err, columns) => {
     // Check for unique indexes
     const uniqueIndexes = indexes.filter(idx => idx.unique === 1);
     if (uniqueIndexes.length > 0) {
-      console.log('\n⚠️  Found UNIQUE indexes. Attempting to remove...\n');
+      console.log('\nWARN: ️  Found UNIQUE indexes. Attempting to remove...\n');
       
       uniqueIndexes.forEach(idx => {
         db.run(`DROP INDEX IF EXISTS ${idx.name}`, (dropErr) => {
           if (dropErr) {
-            console.error(`   ❌ Failed to drop ${idx.name}:`, dropErr.message);
+            console.error(`   ERROR:  Failed to drop ${idx.name}:`, dropErr.message);
           } else {
-            console.log(`   ✅ Dropped index: ${idx.name}`);
+            console.log(`   OK:  Dropped index: ${idx.name}`);
           }
         });
       });
@@ -63,7 +63,7 @@ db.all("PRAGMA table_info(orders)", [], (err, columns) => {
         if (dropErr) {
           console.log('   Note: sqlite_autoindex_orders_1 may not exist');
         } else {
-          console.log('   ✅ Dropped sqlite_autoindex_orders_1');
+          console.log('   OK:  Dropped sqlite_autoindex_orders_1');
         }
         
         // Verify removal
@@ -72,19 +72,19 @@ db.all("PRAGMA table_info(orders)", [], (err, columns) => {
             if (verifyErr) {
               console.error('Error verifying:', verifyErr);
             } else if (remaining.length === 0) {
-              console.log('\n✅ Success! No UNIQUE constraints remain on receipt_number.');
+              console.log('\nOK:  Success! No UNIQUE constraints remain on receipt_number.');
             } else {
-              console.log('\n⚠️  Warning: Some UNIQUE indexes still exist:');
+              console.log('\nWARN: ️  Warning: Some UNIQUE indexes still exist:');
               remaining.forEach(idx => console.log(`   - ${idx.name}`));
             }
             
-            console.log('\n✅ Database check complete. Restart the server for changes to take effect.');
+            console.log('\nOK:  Database check complete. Restart the server for changes to take effect.');
             process.exit(0);
           });
         }, 500);
       });
     } else {
-      console.log('\n✅ No UNIQUE constraints found on receipt_number. Database is correctly configured.');
+      console.log('\nOK:  No UNIQUE constraints found on receipt_number. Database is correctly configured.');
       process.exit(0);
     }
   });

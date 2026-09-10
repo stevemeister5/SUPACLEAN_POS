@@ -683,6 +683,7 @@ const NewOrder = () => {
             ? (payableTotal > 0 ? paidAmount * (itemTotal / payableTotal) : 0)
             : paidAmount;
         return {
+          item_id: item.item_id || null,
           service_id: item.service_id || (services[0]?.id || 1),
           quantity: parseInt(item.quantity, 10),
           weight_kg: item.weight_kg ? parseFloat(item.weight_kg) : null,
@@ -1123,7 +1124,13 @@ Phone: ${customer.phone}
         return updatedItems;
       }
 
-      const defaultService = services.find((s) => (s.name || '').toLowerCase().includes('regular')) || services[0];
+      // Point price-list lines at the item's own service counterpart (same name)
+      // so service linkage, receipts, and service-based reports carry the real
+      // item — falls back to a "regular"-named delivery service, then first.
+      const defaultService =
+        services.find((s) => (s.name || '').toLowerCase() === (item.name || '').toLowerCase()) ||
+        services.find((s) => (s.name || '').toLowerCase().includes('regular')) ||
+        services[0];
       const deliveryType = selectedServiceType === 'express' ? 'same_day' : defaultDeliveryType;
       let expressMultiplier = 0;
       if (selectedServiceType !== 'express' && deliveryType === 'same_day') {

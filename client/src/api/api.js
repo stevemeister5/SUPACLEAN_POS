@@ -336,6 +336,8 @@ export const searchOrdersByCustomer = (params = {}) => api.get('/orders/search/c
 export const getReceiptQRCode = (receiptNumber) => api.get(`/orders/receipt/${receiptNumber}/qrcode`);
 export const getOrder = (id) => api.get(`/orders/${id}`);
 export const getOrderByReceipt = (receiptNumber) => api.get(`/orders/receipt/${receiptNumber}`);
+// Partial receipt search for the Collection page (matches any part of the receipt number)
+export const searchReceipts = (q) => api.get('/orders/search/receipt', { params: { q } });
 export const generateReceiptNumber = (forDate = null, branchId = null) =>
   api.get('/orders/generate-receipt-number', {
     params: {

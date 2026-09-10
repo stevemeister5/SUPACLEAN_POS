@@ -2,6 +2,10 @@
  * Order archive schema (PostgreSQL).
  * Archived orders stay available for history/audit, but are hidden from active operational views.
  */
+require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
+
+if (!process.env.DATABASE_URL) return;
+
 const db = require('./query');
 
 (async () => {

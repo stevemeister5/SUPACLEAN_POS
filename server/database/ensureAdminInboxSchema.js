@@ -2,6 +2,10 @@
  * Admin notification inbox / approval queue (PostgreSQL).
  * Holds void requests, cash-short alerts, AI suggestions, and similar admin-facing items.
  */
+require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
+
+if (!process.env.DATABASE_URL) return;
+
 const db = require('./query');
 
 (async () => {

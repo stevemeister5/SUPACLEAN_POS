@@ -10,24 +10,24 @@ setTimeout(() => {
   const username = 'admin';
   const password = 'admin123';
 
-  console.log('🔍 Testing login for:', username);
-  console.log('📝 Password:', password);
+  console.log('SCAN:  Testing login for:', username);
+  console.log('NOTE:  Password:', password);
   console.log('');
 
   // Find user
   db.get('SELECT * FROM users WHERE username = ? AND is_active = 1', [username], (err, user) => {
     if (err) {
-      console.error('❌ Error finding user:', err.message);
+      console.error('ERROR:  Error finding user:', err.message);
       process.exit(1);
     }
 
     if (!user) {
-      console.error('❌ User not found!');
+      console.error('ERROR:  User not found!');
       console.log('Run: npm run verify-admin');
       process.exit(1);
     }
 
-    console.log('✅ User found:');
+    console.log('OK:  User found:');
     console.log('   ID:', user.id);
     console.log('   Username:', user.username);
     console.log('   Password Hash:', user.password_hash ? 'Exists (' + user.password_hash.substring(0, 20) + '...)' : 'MISSING!');
@@ -36,21 +36,21 @@ setTimeout(() => {
     console.log('');
 
     if (!user.password_hash) {
-      console.error('❌ Password hash is missing!');
+      console.error('ERROR:  Password hash is missing!');
       console.log('Creating password hash...');
       
       bcrypt.hash(password, 10, (hashErr, passwordHash) => {
         if (hashErr) {
-          console.error('❌ Error hashing:', hashErr);
+          console.error('ERROR:  Error hashing:', hashErr);
           process.exit(1);
         }
 
         db.run('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, user.id], (updateErr) => {
           if (updateErr) {
-            console.error('❌ Error updating password:', updateErr);
+            console.error('ERROR:  Error updating password:', updateErr);
             process.exit(1);
           }
-          console.log('✅ Password hash created!');
+          console.log('OK:  Password hash created!');
           console.log('Try logging in again.');
           process.exit(0);
         });
@@ -59,39 +59,39 @@ setTimeout(() => {
     }
 
     // Test password verification
-    console.log('🔐 Testing password verification...');
+    console.log('AUTH:  Testing password verification...');
     bcrypt.compare(password, user.password_hash, (compareErr, isMatch) => {
       if (compareErr) {
-        console.error('❌ Error comparing password:', compareErr.message);
+        console.error('ERROR:  Error comparing password:', compareErr.message);
         process.exit(1);
       }
 
       if (isMatch) {
-        console.log('✅ Password is CORRECT!');
+        console.log('OK:  Password is CORRECT!');
         console.log('');
-        console.log('🔍 Possible issues:');
+        console.log('SCAN:  Possible issues:');
         console.log('   1. Check if server is running');
         console.log('   2. Check browser console for errors');
         console.log('   3. Check server logs for errors');
         console.log('   4. Verify API endpoint: POST /api/auth/login');
         console.log('   5. Check CORS settings');
       } else {
-        console.log('❌ Password is INCORRECT!');
+        console.log('ERROR:  Password is INCORRECT!');
         console.log('');
-        console.log('🔧 Fixing password...');
+        console.log('FIX:  Fixing password...');
         
         bcrypt.hash(password, 10, (hashErr, passwordHash) => {
           if (hashErr) {
-            console.error('❌ Error hashing:', hashErr);
+            console.error('ERROR:  Error hashing:', hashErr);
             process.exit(1);
           }
 
           db.run('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, user.id], (updateErr) => {
             if (updateErr) {
-              console.error('❌ Error updating password:', updateErr);
+              console.error('ERROR:  Error updating password:', updateErr);
               process.exit(1);
             }
-            console.log('✅ Password hash updated!');
+            console.log('OK:  Password hash updated!');
             console.log('Try logging in again.');
             process.exit(0);
           });

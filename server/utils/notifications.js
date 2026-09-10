@@ -117,7 +117,7 @@ async function sendNotification(options) {
     const dup = await hasRecentDuplicate(db, { customerId, notificationType, dedupeKey });
     if (dup) {
       console.log(
-        `📱 Notification skipped (duplicate within window): customer ${customerId} type ${notificationType} key ${dedupeKey}`
+        `SMS:  Notification skipped (duplicate within window): customer ${customerId} type ${notificationType} key ${dedupeKey}`
       );
       return {
         success: true,

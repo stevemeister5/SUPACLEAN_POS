@@ -23,9 +23,9 @@ async function ensure() {
       []
     );
     await db.run('CREATE INDEX IF NOT EXISTS idx_expense_categories_branch_id ON expense_categories (branch_id)', []);
-    console.log('✅ Expense categories schema ready');
+    console.log('OK:  Expense categories schema ready');
   } catch (err) {
-    console.error('❌ Expense categories schema migration error:', err.message);
+    console.error('ERROR:  Expense categories schema migration error:', err.message);
   }
 }
 

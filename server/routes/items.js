@@ -103,7 +103,16 @@ router.post('/', authenticate, requireRole('admin'), requirePermission('canEditP
       'INSERT INTO items (name, description, category, base_price, service_type, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
       [name, description || null, category, base_price, service_type || 'Wash, Press & Hanged', is_active !== undefined ? is_active : true]
     );
-    
+
+    // Create the service counterpart (same name, same base price) so New Order
+    // lines created from this item link to a matching service and every pricing
+    // path (price list, service fallback, service-based reports) stays identical.
+    await db.run(
+      `INSERT INTO services (name, description, base_price, price_per_item, price_per_kg, is_active)
+       VALUES ($1, $2, $3, 0, 0, TRUE)`,
+      [name, service_type || 'Wash, Press & Hanged', base_price]
+    );
+
     const item = await db.get('SELECT * FROM items WHERE id = $1', [result.lastID]);
     res.status(201).json(item);
   } catch (err) {
@@ -118,15 +127,32 @@ router.put('/:id', authenticate, requireRole('admin'), requirePermission('canEdi
   const { name, description, category, base_price, service_type, is_active } = req.body;
 
   try {
+    // Capture the pre-update name/price so the legacy service counterpart
+    // (matched by name) can be kept in sync below.
+    const oldItem = await db.get('SELECT name, base_price FROM items WHERE id = $1', [id]);
+    if (!oldItem) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
     const result = await db.run(
       'UPDATE items SET name = $1, description = $2, category = $3, base_price = $4, service_type = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7',
       [name, description, category, base_price, service_type, is_active !== undefined ? is_active : true, id]
     );
-    
+
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Item not found' });
     }
-    
+
+    // Keep the service counterpart identical to the Price List edit so the
+    // Services tab and any service-based pricing never drift from the price list.
+    const nameOrPriceChanged = oldItem.name !== name || parseFloat(oldItem.base_price) !== parseFloat(base_price);
+    if (nameOrPriceChanged) {
+      await db.run(
+        'UPDATE services SET name = $1, base_price = $2 WHERE LOWER(name) = LOWER($3)',
+        [name, base_price, oldItem.name]
+      );
+    }
+
     const item = await db.get('SELECT * FROM items WHERE id = $1', [id]);
     res.json(item);
   } catch (err) {

@@ -8,7 +8,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../../.env') }
 const isProduction = process.env.NODE_ENV === 'production';
 if (isProduction && !process.env.DATABASE_URL) {
   console.error('');
-  console.error('❌ DATABASE_URL is required in production (e.g. on Render).');
+  console.error('ERROR:  DATABASE_URL is required in production (e.g. on Render).');
   console.error('   Add it in Render: Dashboard → Your Service → Environment → Add variable:');
   console.error('   Key: DATABASE_URL');
   console.error('   Value: your Supabase connection string (from Supabase → Settings → Database).');
@@ -17,7 +17,7 @@ if (isProduction && !process.env.DATABASE_URL) {
 }
 
 if (process.env.DATABASE_URL) {
-  console.log('📍 Using PostgreSQL (DATABASE_URL set)');
+  console.log(' Using PostgreSQL (DATABASE_URL set)');
   const query = require('./query');
   const wrap = (fn) => function (sql, ...args) {
     const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;

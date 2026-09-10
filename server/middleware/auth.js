@@ -20,7 +20,7 @@ function authenticate(req, res, next) {
          FROM user_sessions us
          JOIN users u ON us.user_id = u.id
          LEFT JOIN branches b ON b.id = COALESCE(us.branch_id, u.branch_id)
-         WHERE us.session_token = ? AND us.expires_at > CURRENT_TIMESTAMP AND COALESCE(u.is_active::int, 0) != 0`,
+         WHERE us.session_token = $1 AND us.expires_at > CURRENT_TIMESTAMP AND COALESCE(u.is_active::int, 0) != 0`,
         [sessionToken]
       );
 

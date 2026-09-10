@@ -24,9 +24,9 @@ async function ensure() {
       'CREATE INDEX IF NOT EXISTS idx_branch_receipt_sequences_date ON branch_receipt_sequences(seq_date)',
       []
     );
-    console.log('✅ branch_receipt_sequences ready');
+    console.log('OK:  branch_receipt_sequences ready');
   } catch (err) {
-    console.error('❌ branch_receipt_sequences migration error:', err.message);
+    console.error('ERROR:  branch_receipt_sequences migration error:', err.message);
   }
 }
 

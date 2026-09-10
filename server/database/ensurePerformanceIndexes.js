@@ -1,6 +1,10 @@
 /**
  * PostgreSQL indexes for hot POS read paths (orders list, customers list, cash summaries).
  */
+require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
+
+if (!process.env.DATABASE_URL) return;
+
 const db = require('./query');
 
 (async () => {

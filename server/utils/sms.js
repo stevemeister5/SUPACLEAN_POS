@@ -59,7 +59,7 @@ async function sendSMS(phone, message, options = {}) {
     });
     if (dup) {
       console.log(
-        `📱 SMS skipped (duplicate within window): customer ${customerId} type ${notificationType} key ${dedupeKey}`
+        `SMS:  SMS skipped (duplicate within window): customer ${customerId} type ${notificationType} key ${dedupeKey}`
       );
       return {
         success: true,
@@ -122,7 +122,7 @@ async function sendSMS(phone, message, options = {}) {
 
     // If no SMS provider configured, just log (for development)
     if (!apiKey) {
-      console.log(`📱 SMS (not sent - no API key): ${formattedPhone}`);
+      console.log(`SMS:  SMS (not sent - no API key): ${formattedPhone}`);
       console.log(`Message: ${message}`);
       if (notificationId) {
         db.run(
@@ -184,7 +184,7 @@ async function sendSMS(phone, message, options = {}) {
       username: process.env.SMS_USERNAME,
     };
     if (!smsConfig.username) {
-      console.warn('📱 SMS: SMS_USERNAME is not set. Set it in .env (e.g. "sandbox" for testing or your Africa\'s Talking app username for production).');
+      console.warn('SMS:  SMS: SMS_USERNAME is not set. Set it in .env (e.g. "sandbox" for testing or your Africa\'s Talking app username for production).');
     }
     if (smsConfig.apiKey && smsConfig.username) {
       try {
@@ -218,15 +218,15 @@ async function sendSMS(phone, message, options = {}) {
             return { success: true, message: 'SMS sent successfully', notificationId, provider: 'africas_talking' };
           }
           const apiErrMsg = first?.status || first?.message || response.data.SMSMessageData.Message || 'SMS API returned error status';
-          console.error('📱 Africa\'s Talking SMS error:', apiErrMsg, 'Response:', JSON.stringify(response.data));
+          console.error('SMS:  Africa\'s Talking SMS error:', apiErrMsg, 'Response:', JSON.stringify(response.data));
           throw new Error(apiErrMsg);
         }
-        console.error('📱 Africa\'s Talking unexpected response:', JSON.stringify(response.data));
+        console.error('SMS:  Africa\'s Talking unexpected response:', JSON.stringify(response.data));
         throw new Error('Unexpected response from SMS API');
       } catch (apiError) {
         const errData = apiError.response?.data;
         const errMsg = errData?.message || errData?.SMSMessageData?.Message || apiError.message;
-        console.error('📱 Africa\'s Talking SMS failed:', errMsg, errData ? 'Data: ' + JSON.stringify(errData) : '');
+        console.error('SMS:  Africa\'s Talking SMS failed:', errMsg, errData ? 'Data: ' + JSON.stringify(errData) : '');
         if (notificationId) {
           db.run(
             `UPDATE notifications SET status = 'failed', error_message = ? WHERE id = ?`,

@@ -14,9 +14,9 @@ async function ensure() {
       'CREATE INDEX IF NOT EXISTS idx_notifications_sms_dedupe ON notifications (customer_id, notification_type, channel, dedupe_key)',
       []
     );
-    console.log('✅ notifications.dedupe_key ready');
+    console.log('OK:  notifications.dedupe_key ready');
   } catch (err) {
-    console.error('❌ notifications dedupe_key migration error:', err.message);
+    console.error('ERROR:  notifications dedupe_key migration error:', err.message);
   }
 }
 

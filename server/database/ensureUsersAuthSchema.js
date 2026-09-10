@@ -65,12 +65,12 @@ async function ensure() {
         /* ignore marker write failures — repair UPDATE already ran */
       }
 
-      console.log('✅ Repaired stuck admin must_change_password flag (one-time)');
+      console.log('OK:  Repaired stuck admin must_change_password flag (one-time)');
     }
 
-    console.log('✅ Users auth schema (email, must_change_password) ready');
+    console.log('OK:  Users auth schema (email, must_change_password) ready');
   } catch (err) {
-    console.error('❌ Users auth schema error:', err.message);
+    console.error('ERROR:  Users auth schema error:', err.message);
   }
 }
 

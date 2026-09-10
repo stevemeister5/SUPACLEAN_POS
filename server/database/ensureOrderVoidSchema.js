@@ -2,6 +2,10 @@
  * Order void / transaction reversal schema (PostgreSQL).
  * Soft-void keeps audit trail; voided rows are excluded from cash totals and active order lists.
  */
+require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
+
+if (!process.env.DATABASE_URL) return;
+
 const db = require('./query');
 
 (async () => {

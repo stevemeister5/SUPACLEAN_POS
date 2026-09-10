@@ -11,7 +11,7 @@ setTimeout(() => {
     }
 
     if (user) {
-      console.log('✅ Admin user exists:');
+      console.log('OK:  Admin user exists:');
       console.log('   ID:', user.id);
       console.log('   Username:', user.username);
       console.log('   Role:', user.role);
@@ -19,7 +19,7 @@ setTimeout(() => {
       console.log('   Branch ID:', user.branch_id);
       process.exit(0);
     } else {
-      console.log('❌ Admin user NOT found. Creating...');
+      console.log('ERROR:  Admin user NOT found. Creating...');
       
       // Create admin user
       const password = 'admin123';
@@ -38,7 +38,7 @@ setTimeout(() => {
               process.exit(1);
             }
 
-            console.log('✅ Admin user created successfully!');
+            console.log('OK:  Admin user created successfully!');
             console.log('   Username: admin');
             console.log('   Password: admin123');
             process.exit(0);

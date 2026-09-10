@@ -14,17 +14,17 @@ const ADMIN_FULL_NAME = 'System Administrator';
 const ADMIN_ROLE = 'admin';
 
 function verifyAdmin() {
-  console.log('🔍 Checking for admin user...\n');
+  console.log('SCAN:  Checking for admin user...\n');
 
   // Check if admin exists
   db.get('SELECT * FROM users WHERE username = ?', [ADMIN_USERNAME], (err, user) => {
     if (err) {
-      console.error('❌ Error checking admin user:', err.message);
+      console.error('ERROR:  Error checking admin user:', err.message);
       process.exit(1);
     }
 
     if (user) {
-      console.log('✅ Admin user found:');
+      console.log('OK:  Admin user found:');
       console.log('   ID:', user.id);
       console.log('   Username:', user.username);
       console.log('   Full Name:', user.full_name);
@@ -32,18 +32,18 @@ function verifyAdmin() {
       console.log('   Active:', user.is_active === 1 ? 'Yes' : 'No');
       console.log('   Branch ID:', user.branch_id || 'None (Admin access to all branches)');
       console.log('   Last Login:', user.last_login || 'Never');
-      console.log('\n✅ Admin user is ready to use!');
+      console.log('\nOK:  Admin user is ready to use!');
       console.log('   Username: admin');
       console.log('   Password: admin123');
       process.exit(0);
     } else {
-      console.log('❌ Admin user NOT found.');
-      console.log('🔧 Creating admin user...\n');
+      console.log('ERROR:  Admin user NOT found.');
+      console.log('FIX:  Creating admin user...\n');
 
       // Hash password
       bcrypt.hash(ADMIN_PASSWORD, 10, (hashErr, passwordHash) => {
         if (hashErr) {
-          console.error('❌ Error hashing password:', hashErr.message);
+          console.error('ERROR:  Error hashing password:', hashErr.message);
           process.exit(1);
         }
 
@@ -53,16 +53,16 @@ function verifyAdmin() {
           [ADMIN_USERNAME, passwordHash, ADMIN_FULL_NAME, ADMIN_ROLE, null, 1],
           function(insertErr) {
             if (insertErr) {
-              console.error('❌ Error creating admin user:', insertErr.message);
+              console.error('ERROR:  Error creating admin user:', insertErr.message);
               process.exit(1);
             }
 
-            console.log('✅ Admin user created successfully!');
-            console.log('\n📋 Admin Credentials:');
+            console.log('OK:  Admin user created successfully!');
+            console.log('\nCHECK:  Admin Credentials:');
             console.log('   Username: admin');
             console.log('   Password: admin123');
-            console.log('\n⚠️  IMPORTANT: Please change the password after first login!');
-            console.log('\n✅ You can now log in with these credentials.');
+            console.log('\nWARN: ️  IMPORTANT: Please change the password after first login!');
+            console.log('\nOK:  You can now log in with these credentials.');
             process.exit(0);
           }
         );
