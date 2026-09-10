@@ -1272,8 +1272,9 @@ router.post('/', authenticate, requireBranchAccess(), requirePermission('canCrea
               });
           }
 
-          // Log payment creation to audit log
-          logPaymentChange({
+          // Log payment creation to audit log (awaited: a void with no audit trail is worse than a slow response)
+          try {
+            await logPaymentChange({
             order_id: orderId,
             action: 'created',
             new_payment_status: payment_status || 'not_paid',
@@ -1281,9 +1282,10 @@ router.post('/', authenticate, requireBranchAccess(), requirePermission('canCrea
             new_payment_method: payment_method || 'cash',
             changed_by: created_by || 'System',
             notes: 'Order created'
-          }).catch((err) => {
+            });
+          } catch (err) {
             console.error('Error logging payment change:', err);
-          });
+          }
 
           if (branchId != null) {
             cashManagement.scheduleBackgroundDailySummaryRefresh(paymentBookDateYmd(finalOrderDateIso), branchId);
