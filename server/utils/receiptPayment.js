@@ -9,7 +9,7 @@ const {
   logPaymentChangeClient,
 } = require('./paymentTransactions');
 
-const roundFigure = (x) => (typeof x !== 'number' || Number.isNaN(x) ? 0 : Math.round(x));
+const { roundMoney: roundFigure } = require('./money');
 
 function buildPerOrderPaidAllocations(orders, receiptPaidAmount) {
   const sorted = [...orders].sort((a, b) => Number(a.id) - Number(b.id));
