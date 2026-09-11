@@ -794,3 +794,140 @@
     grid-template-columns: minmax(560px, 1.2fr) minmax(460px, 1fr);
   }
 }
+
+/* ============================================================
+   PHASE 3: Dashboard — Trends, Status, Kanban
+   ============================================================ */
+
+/* Stat card trend indicators */
+.stat-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.stat-trend--up { color: var(--success-color); }
+.stat-trend--down { color: var(--danger-color); }
+.stat-trend--neutral { color: var(--text-muted); }
+
+.stat-trend-arrow {
+  font-size: 14px;
+}
+
+/* Stat card with status color accent */
+.stat-card-modern {
+  cursor: pointer;
+}
+
+.stat-card-modern.income::before { background: var(--success-color); }
+.stat-card-modern.orders::before { background: var(--info-color); }
+.stat-card-modern.pending::before { background: var(--status-pending); }
+.stat-card-modern.ready::before { background: var(--status-ready); }
+.stat-card-modern.overdue::before { background: var(--status-overdue); }
+.stat-card-modern.cash::before { background: var(--primary-color); }
+
+/* Kanban-style queue columns */
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.kanban-column {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.kanban-column-header .count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--bg-tertiary);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 8px;
+}
+
+.kanban-column.pending .kanban-column-header { border-bottom-color: var(--status-pending); }
+.kanban-column.processing .kanban-column-header { border-bottom-color: var(--status-processing); }
+.kanban-column.ready .kanban-column-header { border-bottom-color: var(--status-ready); }
+
+.kanban-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.kanban-card {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.kanban-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.kanban-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.kanban-card-receipt {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.kanban-card-customer {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.kanban-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.kanban-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.kanban-card-actions button {
+  flex: 1;
+  min-height: 36px;
+  font-size: 12px;
+}

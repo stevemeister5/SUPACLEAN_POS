@@ -542,3 +542,147 @@
 .orders-list-card .receipt-detail-panel {
   margin-top: 0;
 }
+
+/* ============================================================
+   PHASE 5: Orders — Status Colors, Bulk Actions, Touch
+   ============================================================ */
+
+/* Status-colored row indicators */
+.orders-table-row.status-pending { border-left: 4px solid var(--status-pending); }
+.orders-table-row.status-processing { border-left: 4px solid var(--status-processing); }
+.orders-table-row.status-ready { border-left: 4px solid var(--status-ready); }
+.orders-table-row.status-collected { border-left: 4px solid var(--status-collected); }
+.orders-table-row.status-voided { border-left: 4px solid var(--status-voided); opacity: 0.6; }
+
+/* Status badge in tables */
+.order-status-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot--pending { background: var(--status-pending); }
+.status-dot--processing { background: var(--status-processing); }
+.status-dot--ready { background: var(--status-ready); }
+.status-dot--collected { background: var(--status-collected); }
+.status-dot--overdue { background: var(--status-overdue); }
+.status-dot--voided { background: var(--status-voided); }
+
+/* Bulk actions bar */
+.bulk-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.bulk-actions-bar .selection-count {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.bulk-actions-bar .bulk-btn {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  transition: all 0.15s ease;
+}
+
+.bulk-actions-bar .bulk-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.bulk-actions-bar .bulk-btn.danger:hover {
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+/* Checkbox for bulk selection */
+.row-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+/* Quick filter pills */
+.filter-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.filter-pill {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-pill:hover {
+  border-color: var(--primary-color);
+}
+
+.filter-pill.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.filter-pill .pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+.filter-pill.active .pill-count {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Touch row actions */
+.row-actions-touch {
+  display: flex;
+  gap: 6px;
+}
+
+.row-actions-touch button {
+  min-height: 36px;
+  min-width: 36px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}

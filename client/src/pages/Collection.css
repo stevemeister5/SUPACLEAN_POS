@@ -788,3 +788,187 @@
     min-height: 44px;
   }
 }
+
+/* ============================================================
+   PHASE 4: Collection — Touch, One-tap, Inline Payment
+   ============================================================ */
+
+/* Large search input for fast lookup */
+.collection-search-big {
+  padding: 18px 20px;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  border-radius: var(--radius-lg);
+  min-height: var(--touch-target-comfortable);
+}
+
+/* Order status hero section */
+.collection-status-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+}
+
+.collection-status-hero.status-ready {
+  background: var(--status-ready-bg);
+  border: 2px solid var(--status-ready);
+}
+
+.collection-status-hero.status-pending {
+  background: var(--status-pending-bg);
+  border: 2px solid var(--status-pending);
+}
+
+.collection-status-hero.status-collected {
+  background: var(--status-collected-bg);
+  border: 2px solid var(--status-collected);
+}
+
+.hero-info h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.hero-info p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.hero-actions button {
+  min-height: var(--touch-target-comfortable);
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Inline payment section */
+.inline-payment {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--warning-color);
+  padding: 20px;
+  margin: 16px 0;
+}
+
+.inline-payment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--warning-color);
+  margin-bottom: 12px;
+}
+
+.payment-amount-display {
+  font-size: 28px;
+  font-weight: 700;
+  text-align: center;
+  margin: 12px 0;
+}
+
+.payment-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.payment-method-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-color);
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: var(--touch-target-comfortable);
+}
+
+.payment-method-btn.selected {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.payment-method-btn .pm-icon {
+  font-size: 20px;
+}
+
+.payment-method-btn .pm-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Quick amount buttons */
+.quick-amounts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.quick-amount-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 36px;
+}
+
+.quick-amount-btn:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.quick-amount-btn.exact {
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+/* Mobile-optimized action bar */
+@media (max-width: 768px) {
+  .collection-actions-modern {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    flex-direction: row;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+  }
+
+  .collection-actions-modern button {
+    flex: 1;
+    min-height: var(--touch-target-comfortable);
+  }
+
+  .collection-page-modern {
+    padding-bottom: 80px;
+  }
+
+  .payment-methods-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
