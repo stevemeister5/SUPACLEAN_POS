@@ -2,7 +2,7 @@ import axios from 'axios';
 import { addToQueue, getAllPending, removeFromQueue } from '../utils/offlineQueue';
 import { getSyncCache, setSyncCache, isNetworkError, isOffline } from '../utils/syncCache';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

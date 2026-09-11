@@ -21,7 +21,7 @@ const {
   daysOverdueFromEstimated
 } = require('../utils/sms');
 const { sendSmsWithWhatsAppFallback } = require('../utils/notifications');
-const { authenticate, requireBranchAccess, requireBranchFeature, requireBranchFeatureAny } = require('../middleware/auth');
+const { authenticate, requireBranchAccess, requireBranchFeature, requireBranchFeatureAny, requireReceiptAccess } = require('../middleware/auth');
 const { requirePermission, requireAnyPermission } = require('../middleware/permissions');
 const { getBranchFilter, getEffectiveBranchId } = require('../utils/branchFilter');
 const { validatePayment } = require('../utils/paymentValidation');

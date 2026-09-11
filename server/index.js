@@ -199,21 +199,30 @@ app.use((err, req, res, next) => {
   });
 });
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(` SUPACLEAN POS Server running on port ${PORT}`);
-  console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
-});
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`ERROR:  Port ${PORT} is already in use. Please kill the process or use a different port.`);
-    console.error(`Run: npm run kill-port`);
-    process.exit(1);
-  } else {
-    console.error('Server error:', err);
-    process.exit(1);
-  }
-});
+// Export for Vercel serverless — must be before app.listen
+module.exports = app;
+
+// Only listen when NOT on Vercel (serverless handles invocation)
+let server;
+if (!process.env.VERCEL) {
+  server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(` SUPACLEAN POS Server running on port ${PORT}`);
+    console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`ERROR:  Port ${PORT} is already in use. Please kill the process or use a different port.`);
+      console.error(`Run: npm run kill-port`);
+      process.exit(1);
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
+  });
+
+}  // end if (!process.env.VERCEL)
 
 function gracefulShutdown(signal) {
   console.log(`\n${signal} signal received: closing HTTP server`);

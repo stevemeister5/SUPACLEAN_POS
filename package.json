@@ -20,7 +20,9 @@
     "stress:read": "k6 run ./load-testing/scenarios/read-heavy.js",
     "stress:write": "k6 run ./load-testing/scenarios/write-heavy.js",
     "stress:spike": "k6 run ./load-testing/scenarios/spike.js",
-    "stress:soak": "k6 run ./load-testing/scenarios/soak.js"
+    "stress:soak": "k6 run ./load-testing/scenarios/soak.js",
+    "vercel-build": "npm install && cd client && npm install && npm run build",
+    "build:vercel": "npm install && cd client && npm install && npm run build"
   },
   "keywords": [
     "pos",
@@ -46,6 +48,7 @@
     "multer": "^1.4.5-lts.1",
     "pg": "^8.16.3",
     "qrcode": "^1.5.4",
+    "serverless-http": "^3.2.0",
     "sqlite3": "^6.0.1"
   },
   "devDependencies": {

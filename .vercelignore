@@ -1,0 +1,25 @@
+# Don't deploy these
+node_modules/
+client/node_modules/
+.env
+.env.local
+backups/
+uploads/
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# Dev scripts not needed in production
+scripts/seed-*.js
+load-testing/
+
+# Python helpers (not needed at runtime)
+_emoji_scan.py
+_find_survivor.py
+_fix_line.py
+_strip_server_emoji.py
+
+# Docs (not needed at runtime)
+docs/
+*.md

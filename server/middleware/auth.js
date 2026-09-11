@@ -177,14 +177,26 @@ function requireBranchFeatureAny(...featureKeys) {
     }
   };
 }
+/**
+ * Require receipt access (any authenticated user can access receipts).
+ * Use after authenticate.
+ */
+function requireReceiptAccess() {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    next();
+  };
+}
 
 module.exports = {
   authenticate,
   requireRole,
   requireBranchAccess,
-  requireReceiptAccess,
   requireCleaningAccess,
   requireBranchFeature,
   requireBranchFeatureAny,
+  requireReceiptAccess,
 };
 
