@@ -37,6 +37,12 @@ const db = require('./query');
       'CREATE INDEX IF NOT EXISTS idx_orders_receipt_number_lower ON orders (lower(receipt_number))',
       []
     );
+    // Customer tag search (ILIKE '%tag%') - trgm GIN keeps it indexed as the table grows
+    await db.run('CREATE EXTENSION IF NOT EXISTS pg_trgm', []);
+    await db.run(
+      'CREATE INDEX IF NOT EXISTS idx_customers_tags_trgm ON customers USING gin (tags gin_trgm_ops)',
+      []
+    );
   } catch (err) {
     console.error('ensurePerformanceIndexes failed:', err.message);
   }
