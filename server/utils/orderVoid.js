@@ -2,6 +2,7 @@
  * Void an entire receipt (all line items) and reverse related payment transactions + loyalty.
  */
 const db = require('../database/query');
+const { convertQuery } = require('../database/query');
 const cashManagement = require('../routes/cashManagement');
 const { logPaymentChange } = require('./paymentTransactions');
 const { toSqlDateString } = require('./businessDate');
@@ -189,52 +190,85 @@ async function voidReceiptByNumber(receiptNumber, options = {}) {
     }
   }
 
-  await db.run(
-    `UPDATE orders
-     SET is_voided = TRUE,
-         void_reason = ?,
-         voided_by = ?,
-         voided_at = CURRENT_TIMESTAMP,
-         status = 'voided',
-         payment_status = 'voided',
-         paid_amount = 0
-     WHERE id IN (${placeholders})`,
-    [voidReason, voidedBy, ...orderIds]
-  );
+  // Void mutations + audit row run in ONE transaction so a void can never
+  // exist without its audit trail (a failed audit insert now rolls back the void).
+  const client = await db.getPool().connect();
+  try {
+    await client.query('BEGIN');
 
-  let transactionsVoided = 0;
-  if (transactions?.length) {
-    const txResult = await db.run(
-      `UPDATE transactions
-       SET is_voided = TRUE,
-           void_reason = ?,
-           voided_by = ?,
-           voided_at = CURRENT_TIMESTAMP
-       WHERE order_id IN (${placeholders})
-         AND transaction_type = 'payment_received'
-         AND COALESCE(is_voided, FALSE) = FALSE`,
+    // Row-lock to serialize against concurrent payments on the same receipt
+    await client.query(
+      convertQuery(`SELECT id FROM orders WHERE id IN (${placeholders}) FOR UPDATE`, orderIds).query,
+      orderIds
+    );
+
+    await client.query(
+      convertQuery(
+        `UPDATE orders
+         SET is_voided = TRUE,
+             void_reason = ?,
+             voided_by = ?,
+             voided_at = CURRENT_TIMESTAMP,
+             status = 'voided',
+             payment_status = 'voided',
+             paid_amount = 0
+         WHERE id IN (${placeholders})`,
+        [voidReason, voidedBy, ...orderIds]
+      ).query,
       [voidReason, voidedBy, ...orderIds]
     );
-    transactionsVoided = txResult?.changes ?? transactions.length;
+
+    if (transactions?.length) {
+      await client.query(
+        convertQuery(
+          `UPDATE transactions
+           SET is_voided = TRUE,
+               void_reason = ?,
+               voided_by = ?,
+               voided_at = CURRENT_TIMESTAMP
+           WHERE order_id IN (${placeholders})
+             AND transaction_type = 'payment_received'
+             AND COALESCE(is_voided, FALSE) = FALSE`,
+          [voidReason, voidedBy, ...orderIds]
+        ).query,
+        [voidReason, voidedBy, ...orderIds]
+      );
+    }
+
+    await client.query(
+      `INSERT INTO payment_audit_log
+         (order_id, action, old_payment_status, new_payment_status,
+          old_paid_amount, new_paid_amount, old_payment_method, new_payment_method,
+          changed_by, notes)
+       VALUES ($1, 'voided', $2, 'voided', $3, 0, $4, $4, $5, $6)`,
+      [
+        allOrders[0].id,
+        allOrders[0].payment_status,
+        receiptPaid,
+        allOrders[0].payment_method,
+        voidedBy,
+        voidReason,
+      ]
+    );
+
+    await client.query('COMMIT');
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rbErr) {
+      console.error('ERROR: void receipt ROLLBACK failed:', rbErr.message);
+    }
+    throw err;
+  } finally {
+    client.release();
   }
+
+  let transactionsVoided = transactions?.length ?? 0;
 
   let loyaltyPointsReversed = 0;
   for (const orderId of orderIds) {
     loyaltyPointsReversed += await reverseLoyaltyForOrder(customerId, orderId, voidedBy);
   }
-
-  await logPaymentChange({
-    order_id: allOrders[0].id,
-    action: 'voided',
-    old_payment_status: allOrders[0].payment_status,
-    new_payment_status: 'voided',
-    old_paid_amount: receiptPaid,
-    new_paid_amount: 0,
-    old_payment_method: allOrders[0].payment_method,
-    new_payment_method: allOrders[0].payment_method,
-    changed_by: voidedBy,
-    notes: voidReason
-  });
 
   let closingRefresh = { reconciledDaysForced: [] };
   if (!_skipChainRefresh && branchId != null) {
