@@ -4,6 +4,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import LegacyLayout from './components/layout-legacy/Layout';
+import InstallPrompt from './components/InstallPrompt';
 import Loader from './components/Loader';
 import Login from './pages/Login';
 import './App.css';
@@ -110,6 +111,7 @@ const AppLayout = legacyPosShell ? LegacyLayout : Layout;
 function App() {
   return (
     <ThemeProvider>
+      <InstallPrompt />
       <AuthProvider>
         <AppErrorBoundary>
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
