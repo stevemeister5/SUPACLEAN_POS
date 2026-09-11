@@ -1440,6 +1440,7 @@ Thank you for choosing SUPACLEAN!
             ) : null
           }
         />
+   </div>
       {/* Payment Modal (for collection) */}
       {showPaymentModal && order && (() => {
         const { receiptTotal, receiptPaid, balanceDue } = getReceiptTotals(order, allReceiptOrders);
@@ -1470,6 +1471,7 @@ Thank you for choosing SUPACLEAN!
                   <label>Payment Amount * (balance due — can be paid in full or part)</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     placeholder={`Balance due: TSh ${balanceDue.toLocaleString()}`}
@@ -1547,6 +1549,7 @@ Thank you for choosing SUPACLEAN!
                   <label>Payment Amount * (full or partial, up to balance due)</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     placeholder={`Enter up to TSh ${balanceDue.toLocaleString()}`}
