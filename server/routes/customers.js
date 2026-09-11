@@ -392,7 +392,7 @@ router.get('/by-tag/:tag', authenticate, requireAnyPermission('canManageCustomer
 });
 
 // Get all unique tags
-router.get('/tags/all', async (req, res) => {
+router.get('/tags/all', authenticate, requireAnyPermission('canManageCustomers', 'canViewCustomers'), async (req, res) => {
   try {
     const rows = await db.all(
       'SELECT DISTINCT tags FROM customers WHERE tags IS NOT NULL AND tags != \'\'',
