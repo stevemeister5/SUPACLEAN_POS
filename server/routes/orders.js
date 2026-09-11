@@ -1482,18 +1482,21 @@ router.put('/:id/status', authenticate, requireBranchAccess(), requirePermission
       updateQuery += ', branch_id = ?';
       params.push(branchId);
     }
+    // Branch-audit columns: prefer the acting user's branch; admins acting
+    // cross-branch fall back to the order's own branch so the trail is never NULL.
+    const atBranchId = branchId != null ? branchId : order.branch_id;
     if (status === 'ready') {
       updateQuery += ', ready_date = CURRENT_TIMESTAMP';
-      if (branchId) {
+      if (atBranchId != null) {
         updateQuery += ', ready_at_branch_id = ?';
-        params.push(branchId);
+        params.push(atBranchId);
       }
     }
     if (status === 'collected') {
       updateQuery += ', collected_date = CURRENT_TIMESTAMP';
-      if (branchId) {
+      if (atBranchId != null) {
         updateQuery += ', collected_at_branch_id = ?';
-        params.push(branchId);
+        params.push(atBranchId);
       }
     }
     updateQuery += ' WHERE id = ?';
