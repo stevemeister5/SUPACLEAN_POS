@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useListViewPreference } from '../hooks/useListViewPreference';
 import useHorizontalScrollRegion from '../hooks/useHorizontalScrollRegion';
 import ListViewToggle from '../components/ListViewToggle';
+import SkeletonList from '../components/SkeletonList';
 import Loader from '../components/Loader';
 import ReceiptDetailPanel from '../components/ReceiptDetailPanel';
 import { exportToPDF, exportToExcel, exportOrdersPackagingExcel } from '../utils/exportUtils';
@@ -1602,7 +1603,7 @@ ${displayPhone !== 'No phone' ? `Phone: ${displayPhone}\n` : ''}─────�
       </div>
 
       {loading ? (
-        <Loader message="Loading orders…" fullPage />
+        <SkeletonList rows={10} />
       ) : (
         <>
       {orphanExpandedReceipts.map((rn) => {

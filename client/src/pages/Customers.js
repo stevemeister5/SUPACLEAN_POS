@@ -11,6 +11,7 @@ import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
 import { useListViewPreference } from '../hooks/useListViewPreference';
 import ListViewToggle from '../components/ListViewToggle';
+import SkeletonList from '../components/SkeletonList';
 import Loader from '../components/Loader';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import './Customers.css';
@@ -244,7 +245,11 @@ const Customers = () => {
   };
 
   if (loading) {
-    return <Loader message="Loading customers…" fullPage />;
+    return (
+      <div className="customers-page">
+        <SkeletonList rows={12} />
+      </div>
+    );
   }
 
   return (
