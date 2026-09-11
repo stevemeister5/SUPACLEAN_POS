@@ -9,6 +9,7 @@ import {
   rejectAdminInboxItem,
 } from '../api/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../hooks/useToast';
 import './AdminNotificationCenter.css';
 
 const TYPE_LABELS = {
@@ -109,6 +110,7 @@ function handleItemKeyDown(event, item, onOpen) {
 
 export default function AdminNotificationCenter() {
   const { isAdmin, selectedBranchId } = useAuth();
+  const { showToast, ToastContainer } = useToast();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
@@ -194,7 +196,7 @@ export default function AdminNotificationCenter() {
         return;
       }
       const msg = error.response?.data?.error || error.message || 'Approve failed';
-      window.alert('Could not approve void request:\n\n' + msg);
+      showToast('Could not approve void request: ' + msg, 'error');
     } finally {
       setBusyId(null);
     }
@@ -208,7 +210,7 @@ export default function AdminNotificationCenter() {
       await rejectAdminInboxItem(item.id, { review_note: note.trim() || null });
       await load();
     } catch (error) {
-      window.alert(error.response?.data?.error || error.message || 'Decline failed');
+      showToast(error.response?.data?.error || error.message || 'Decline failed', 'error');
     } finally {
       setBusyId(null);
     }
@@ -243,7 +245,7 @@ export default function AdminNotificationCenter() {
       await dismissAdminInboxItem(item.id);
       await load();
     } catch (error) {
-      window.alert(error.response?.data?.error || error.message || 'Dismiss failed');
+      showToast(error.response?.data?.error || error.message || 'Dismiss failed', 'error');
     } finally {
       setBusyId(null);
     }
@@ -251,6 +253,7 @@ export default function AdminNotificationCenter() {
 
   return (
     <div className="admin-inbox" ref={panelRef}>
+      <ToastContainer />
       <button
         type="button"
         className={`admin-inbox__bell${open ? ' is-open' : ''}`}
