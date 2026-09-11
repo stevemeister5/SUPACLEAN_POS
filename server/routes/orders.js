@@ -72,7 +72,9 @@ function buildPaymentTimestampIso(paymentDate) {
 }
 
 function triggerDailySummaryRefreshAsync(paymentDate, branchId) {
-  cashManagement.scheduleBackgroundDailySummaryRefresh(paymentDate, branchId);
+  cashManagement.scheduleBackgroundDailySummaryRefresh(paymentDate, branchId).catch(err => {
+    console.error('BACKGROUND: daily summary refresh failed:', err.message);
+  });
 }
 
 function buildPerOrderPaidAllocations(orders, receiptPaidAmount) {
@@ -1104,7 +1106,9 @@ router.post('/batch', authenticate, requireBranchAccess(), requirePermission('ca
       items: results,
     };
     if (orderBranchId != null) {
-      cashManagement.scheduleBackgroundDailySummaryRefresh(paymentBookDateYmd(finalOrderDateIso), orderBranchId);
+      cashManagement.scheduleBackgroundDailySummaryRefresh(paymentBookDateYmd(finalOrderDateIso), orderBranchId).catch(err => {
+        console.error('BACKGROUND: daily summary refresh failed (batch):', err.message);
+      });
     }
     if (idempotencyKey) {
       await storeIdempotencyResponse(IDEMPOTENCY_ROUTE_ORDERS_BATCH, idempotencyKey, 200, payload);
@@ -1291,7 +1295,9 @@ router.post('/', authenticate, requireBranchAccess(), requirePermission('canCrea
           }
 
           if (branchId != null) {
-            cashManagement.scheduleBackgroundDailySummaryRefresh(paymentBookDateYmd(finalOrderDateIso), branchId);
+            cashManagement.scheduleBackgroundDailySummaryRefresh(paymentBookDateYmd(finalOrderDateIso), branchId).catch(err => {
+              console.error('BACKGROUND: daily summary refresh failed (single):', err.message);
+            });
           }
 
           // Get customer details for receipt
