@@ -25,7 +25,7 @@ const { authenticate, requireBranchAccess, requireBranchFeature, requireBranchFe
 const { requirePermission, requireAnyPermission } = require('../middleware/permissions');
 const { getBranchFilter, getEffectiveBranchId } = require('../utils/branchFilter');
 const { validatePayment } = require('../utils/paymentValidation');
-const { roundMoney, roundFigure } = require('../utils/money');
+const { roundMoney } = require('../utils/money');
 const { recordPaymentTransaction, recordPaymentTransactionClient, logPaymentChange, logPaymentChangeClient } = require('../utils/paymentTransactions');
 const { applyReceiptPaymentAtomic } = require('../utils/receiptPayment');
 const { parseArchiveOptions, archiveOldOrders: runArchiveOldOrders } = require('../utils/archiveOldOrders');
@@ -79,11 +79,11 @@ function triggerDailySummaryRefreshAsync(paymentDate, branchId) {
 
 function buildPerOrderPaidAllocations(orders, receiptPaidAmount) {
   const sorted = [...orders].sort((a, b) => Number(a.id) - Number(b.id));
-  let remaining = Math.max(0, roundFigure(receiptPaidAmount));
+  let remaining = Math.max(0, roundMoney(receiptPaidAmount));
   const allocations = [];
 
   for (const o of sorted) {
-    const total = Math.max(0, roundFigure(Number(o.total_amount) || 0));
+    const total = Math.max(0, roundMoney(Number(o.total_amount) || 0));
     const paidNow = Math.min(total, remaining);
     remaining -= paidNow;
     const status = paidNow >= total ? 'paid_full' : (paidNow > 0 ? 'advance' : 'not_paid');
@@ -1472,9 +1472,9 @@ router.put('/:id/status', authenticate, requireBranchAccess(), requirePermission
 
     // Cannot mark as collected without payment
     if (status === 'collected') {
-      const total = roundFigure(parseFloat(order.total_amount) || 0);
-      const paid = roundFigure(parseFloat(order.paid_amount) || 0);
-      const balanceDue = roundFigure(total - paid);
+      const total = roundMoney(parseFloat(order.total_amount) || 0);
+      const paid = roundMoney(parseFloat(order.paid_amount) || 0);
+      const balanceDue = roundMoney(total - paid);
       if (balanceDue > 0) {
         return res.status(400).json({
           error: 'Cannot mark as collected without payment. Receive payment first (Pay button) or use the Collection page to collect with payment.'
@@ -1668,7 +1668,7 @@ router.post('/collect/:receiptNumber', authenticate, requireBranchFeature('colle
 
     const branchFilter = getBranchFilter(req, 'o');
     const payAmount =
-      payment_amount !== undefined && payment_amount > 0 ? roundFigure(parseFloat(payment_amount)) : 0;
+      payment_amount !== undefined && payment_amount > 0 ? roundMoney(parseFloat(payment_amount)) : 0;
 
     if (payAmount > 0 && !assertNotFutureBusinessDate(paymentBookDateYmd(payment_date), res, 'payment_date')) {
       return;
@@ -1794,7 +1794,7 @@ router.post('/:id/receive-payment', authenticate, requireBranchAccess(), require
     const txResult = await applyReceiptPaymentAtomic({
       receiptNumber: order.receipt_number,
       branchFilter,
-      paymentAmount: roundFigure(parseFloat(payment_amount)),
+      paymentAmount: roundMoney(parseFloat(payment_amount)),
       paymentMethod: payment_method,
       paymentTimestampIso,
       notes,

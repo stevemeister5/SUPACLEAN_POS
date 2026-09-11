@@ -11,4 +11,4 @@ function roundCents(x) {
   return typeof x === 'number' && !Number.isNaN(x) ? Math.round(x * 100) / 100 : 0;
 }
 
-module.exports = { roundMoney, roundCents, roundFigure: roundMoney };
+module.exports = { roundMoney, roundCents };

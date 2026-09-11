@@ -9,15 +9,15 @@ const {
   logPaymentChangeClient,
 } = require('./paymentTransactions');
 
-const { roundMoney: roundFigure } = require('./money');
+const { roundMoney } = require('./money');
 
 function buildPerOrderPaidAllocations(orders, receiptPaidAmount) {
   const sorted = [...orders].sort((a, b) => Number(a.id) - Number(b.id));
-  let remaining = Math.max(0, roundFigure(receiptPaidAmount));
+  let remaining = Math.max(0, roundMoney(receiptPaidAmount));
   const allocations = [];
 
   for (const o of sorted) {
-    const total = Math.max(0, roundFigure(Number(o.total_amount) || 0));
+    const total = Math.max(0, roundMoney(Number(o.total_amount) || 0));
     const paidNow = Math.min(total, remaining);
     remaining -= paidNow;
     const status = paidNow >= total ? 'paid_full' : paidNow > 0 ? 'advance' : 'not_paid';
@@ -106,10 +106,10 @@ async function applyReceiptPaymentAtomic({
       return { ok: false, status: 400, error: 'Receipt already collected' };
     }
 
-    const receiptTotal = roundFigure(orders.reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0));
-    const receiptPaid = roundFigure(orders.reduce((sum, o) => sum + (parseFloat(o.paid_amount) || 0), 0));
-    const balanceDue = roundFigure(receiptTotal - receiptPaid);
-    const payAmount = roundFigure(Number(paymentAmount) || 0);
+    const receiptTotal = roundMoney(orders.reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0));
+    const receiptPaid = roundMoney(orders.reduce((sum, o) => sum + (parseFloat(o.paid_amount) || 0), 0));
+    const balanceDue = roundMoney(receiptTotal - receiptPaid);
+    const payAmount = roundMoney(Number(paymentAmount) || 0);
     const firstOrder = orders[0];
 
     if (payAmount > 0) {
@@ -147,7 +147,7 @@ async function applyReceiptPaymentAtomic({
     let receiptPaymentStatus = firstOrder.payment_status;
 
     if (payAmount > 0) {
-      newReceiptPaid = roundFigure(receiptPaid + payAmount);
+      newReceiptPaid = roundMoney(receiptPaid + payAmount);
       receiptPaymentStatus = newReceiptPaid >= receiptTotal - tol ? 'paid_full' : 'advance';
       const orderObj = {
         id: firstOrder.id,
@@ -218,7 +218,7 @@ async function applyReceiptPaymentAtomic({
         paymentAmount: payAmount,
         transactionId,
         receiptPaymentStatus,
-        balanceRemaining: roundFigure(Math.max(0, receiptTotal - newReceiptPaid)),
+        balanceRemaining: roundMoney(Math.max(0, receiptTotal - newReceiptPaid)),
         itemCount: orders.length,
       },
     };
@@ -237,5 +237,5 @@ async function applyReceiptPaymentAtomic({
 module.exports = {
   applyReceiptPaymentAtomic,
   buildPerOrderPaidAllocations,
-  roundFigure,
+  roundMoney,
 };
