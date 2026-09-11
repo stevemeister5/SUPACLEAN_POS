@@ -466,3 +466,187 @@ textarea:focus {
   background: rgba(120, 120, 120, 0.5);
   border-radius: 999px;
 }
+
+/* ============================================================
+   LAUNDRY POS DESIGN SYSTEM — Status & Service Colors
+   ============================================================ */
+:root,
+[data-theme="light"] {
+  /* Order status colors — consistent across all pages */
+  --status-pending: #f59e0b;
+  --status-pending-bg: rgba(245, 158, 11, 0.1);
+  --status-processing: #3b82f6;
+  --status-processing-bg: rgba(59, 130, 246, 0.1);
+  --status-ready: #10b981;
+  --status-ready-bg: rgba(16, 185, 129, 0.1);
+  --status-collected: #6b7280;
+  --status-collected-bg: rgba(107, 114, 128, 0.1);
+  --status-overdue: #ef4444;
+  --status-overdue-bg: rgba(239, 68, 68, 0.12);
+  --status-voided: #9ca3af;
+  --status-voided-bg: rgba(156, 163, 175, 0.1);
+
+  /* Service type colors */
+  --service-wash: #3b82f6;
+  --service-dry-clean: #8b5cf6;
+  --service-iron: #f59e0b;
+  --service-express: #ef4444;
+  --service-fold: #10b981;
+
+  /* Touch targets */
+  --touch-target-min: 44px;
+  --touch-target-comfortable: 48px;
+
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+--space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* Quick action floating button */
+  --fab-size: 56px;
+  --fab-offset: 24px;
+}
+
+[data-theme="dark"] {
+  --status-ppending: #fbbf24;
+  --status-pending-bg: rgba(251, 191, 36, 0.15);
+  --status-processing: #60a5fa;
+  --status-processing-bg: rgba(96, 165, 250, 0.15);
+  --status-ready: #34d399;
+  --status-ready-bg: rgba(52, 211, 153, 0.15);
+  --status-collected: #9ca3af;
+  --status-collected-bg: rgba(156, 163, 175, 0.15);
+  --status-overdue: #f87171;
+  --status-overdue-bg: rgba(248, 113, 113, 0.15);
+  --status-voided: #6b7280;
+  --status-voided-bg: rgba(107, 114, 128, 0.15);
+
+  --service-wash: #60a5fa;
+  --service-dry-clean: #a78bfa;
+  --service-iron: #fbbf24;
+  --service-express: #f87171;
+  --service-fold: #34d399;
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-xs { gap: var(--space-xs); }
+.gap-sm { gap: var(--space-sm); }
+.gap-md { gap: var(--space-md); }
+.gap-lg { gap: var(--space-lg); }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.text-center { text-align: center; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.text-sm { font-size: 13px; }
+.text-lg { font-size: 17px; }
+.text-xl { font-size: 20px; }
+.rounded { border-radius: var(--radius-md); }
+.rounded-lg { border-radius: var(--radius-lg); }
+
+/* Touch-friendly targets */
+.touch-target {
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+}
+.touch-comfortable {
+  min-height: var(--touch-target-comfortable);
+  min-width: var(--touch-target-comfortable);
+}
+
+/* Status color utilities */
+.status-pending { color: var(--status-pending); }
+.status-processing { color: var(--status-processing); }
+.status-ready { color: var(--status-ready); }
+.status-collected { color: var(--status-collected); }
+.status-overdue { color: var(--status-overdue); }
+.status-voided { color: var(--status-voided); }
+
+/* Status background utilities */
+.bg-status-pending { background: var(--status-pending-bg); }
+.bg-status-processing { background: var(--status-processing-bg); }
+.bg-status-ready { background: var(--status-ready-bg); }
+.bg-status-overdue { background: var(--status-overdue-bg); }
+
+/* Service type colors */
+.service-wash { color: var(--service-wash); }
+.service-dry-clean { color: var(--service-dry-clean); }
+.service-iron { color: var(--service-iron); }
+.service-express { color: var(--service-express); }
+
+/* Pulse animation for "ready" items */
+@keyframes pulse-ready {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+}
+.pulse-ready {
+  animation: pulse-ready 2s infinite;
+}
+
+/* Shimmer for loading states */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-hover) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Quick action FAB */
+.fab {
+  position: fixed;
+  bottom: var(--fab-offset);
+  right: var(--fab-offset);
+  width: var(--fab-size);
+  height: var(--fab-size);
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  z-index: 100;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.fab:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-xl);
+}
+.fab:active {
+  transform: scale(0.95);
+}
+
+/* Keyboard shortcut hint */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}

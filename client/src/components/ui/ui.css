@@ -110,3 +110,216 @@
     flex-direction: column;
   }
 }
+
+/* Enhanced Status Badge — laundry POS specific statuses */
+.v2-status--pending {
+  background: var(--status-pending-bg);
+  color: var(--status-pending);
+}
+
+.v2-status--processing {
+  background: var(--status-processing-bg);
+  color: var(--status-processing);
+}
+
+.v2-status--ready {
+  background: var(--status-ready-bg);
+  color: var(--status-ready);
+}
+
+.v2-status--collected {
+  background: var(--status-collected-bg);
+  color: var(--status-collected);
+}
+
+.v2-status--overdue {
+  background: var(--status-overdue-bg);
+  color: var(--status-overdue);
+}
+
+.v2-status--voided {
+  background: var(--status-voided-bg);
+  color: var(--status-voided);
+}
+
+/* Pulsing variant for "ready to collect" */
+.v2-status--pulse {
+  animation: status-pulse 2s infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--status-ready-bg); }
+  50% { box-shadow: 0 0 0 6px transparent; }
+}
+
+/* Order card with status border */
+.order-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.order-card::before {
+  content: '';  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--status-collected);
+}
+
+.order-card.status-pending::before { background: var(--status-pending); }
+.order-card.status-processing::before { background: var(--status-processing); }
+.order-card.status-ready::before { background: var(--status-ready); }
+.order-card.status-overdue::before { background: var(--status-overdue); }
+.order-card.status-voided::before { background: var(--status-voided); }
+
+/* Service type icon badges */
+.service-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.service-badge--wash { background: rgba(59, 130, 246, 0.1); color: var(--service-wash); }
+.service-badge--dry-clean { background: rgba(139, 92, 246, 0.1); color: var(--service-dry-clean); }
+.service-badge--iron { background: rgba(245, 158, 11, 0.1); color: var(--service-iron); }
+.service-badge--express { background: rgba(239, 68, 68, 0.1); color: var(--service-express); }
+
+/* Quick select grid for items/services */
+.quick-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.quick-select-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-color);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: var(--touch-target-comfortable);
+}
+
+.quick-select-item:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.quick-select-item:active {
+  transform: scale(0.96);
+}
+
+.quick-select-item .qs-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.quick-select-item .qs-price {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Summary card for order totals */
+.summary-card {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  position: sticky;
+  top: 20px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.summary-row--total {
+  border-top: 2px solid var(--border-color);
+  margin-top: 8px;
+  padding-top: 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Touch-optimized action buttons */
+.btn-touch {
+  min-height: var(--touch-target-comfortable);
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-touch:active {
+  transform: scale(0.97);
+}
+
+.btn-touch--primary {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.btn-touch--success {
+  background: var(--success-color);
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-touch--warning {
+  background: var(--warning-color);
+  color: white;
+}
+
+.btn-touch--danger {
+  background: var(--danger-color);
+  color: white;
+}
+
+/* Mobile action bar (bottom) */
+.mobile-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.mobile-actions .btn-touch {
+  flex: 1;
+}
+
+@media (min-width: 769px) {
+  .mobile-actions {
+    display: none;
+  }
+}
