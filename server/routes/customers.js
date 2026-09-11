@@ -354,7 +354,7 @@ router.put('/:id', requireBranchAccess(), requirePermission('canManageCustomers'
 });
 
 // Update customer tags
-router.put('/:id/tags', async (req, res) => {
+router.put('/:id/tags', requireBranchAccess(), requirePermission('canManageCustomers'), async (req, res) => {
   const { id } = req.params;
   const { tags } = req.body;
 
@@ -375,7 +375,7 @@ router.put('/:id/tags', async (req, res) => {
 });
 
 // Get customers by tag
-router.get('/by-tag/:tag', async (req, res) => {
+router.get('/by-tag/:tag', authenticate, requireAnyPermission('canManageCustomers', 'canViewCustomers'), async (req, res) => {
   const { tag } = req.params;
   
   try {

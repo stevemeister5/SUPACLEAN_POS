@@ -1492,8 +1492,8 @@ router.put('/:id/status', authenticate, requireBranchAccess(), requirePermission
       params.push(branchId);
     }
     // Branch-audit columns: prefer the acting user's branch; admins acting
-    // cross-branch fall back to the order's own branch so the trail is never NULL.
-    const atBranchId = branchId != null ? branchId : order.branch_id;
+    // cross-branch fall back to the effective branch so the trail is never NULL.
+    const atBranchId = branchId != null ? branchId : getEffectiveBranchId(req) || order.branch_id;
     if (status === 'ready') {
       updateQuery += ', ready_date = CURRENT_TIMESTAMP';
       if (atBranchId != null) {
