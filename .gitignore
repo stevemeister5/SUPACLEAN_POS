@@ -61,3 +61,5 @@ backups/
 
 # Load testing artifacts
 load-testing/
+.vercel
+.env*
