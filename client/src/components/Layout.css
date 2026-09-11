@@ -553,3 +553,52 @@
 }
 
 
+
+
+/* Mobile bottom tab bar - till-critical actions within thumb reach */
+.mobile-bottom-tabs {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    display: flex;
+    background: var(--bg-secondary);
+    border-top: 0.5px solid var(--border-color);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .mobile-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 4px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 0;
+  }
+
+  .mobile-tab.active {
+    color: var(--primary-color);
+    box-shadow: inset 0 -2px 0 var(--primary-color);
+  }
+
+  .main-content.sidebar-open .mobile-bottom-tabs,
+  .mobile-bottom-tabs:has(+ .sidebar-overlay) {
+    display: none;
+  }
+
+  .main-content {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+}

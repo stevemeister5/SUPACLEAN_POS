@@ -159,6 +159,15 @@ const Layout = ({ children }) => {
     }),
   })).filter(grp => grp.items.length > 0);
 
+  // Mobile bottom tab bar: till-critical destinations first, in fixed order.
+  const flatNavItems = filteredGroups.flatMap((g) => g.items);
+  const tabPriority = ['/new-order', '/collection', '/orders', '/dashboard'];
+  const tabItems = tabPriority
+    .map((p) => flatNavItems.find((it) => it.path === p))
+    .filter(Boolean)
+    .slice(0, 3);
+  const showBottomTabs = isMobile && tabItems.length > 0;
+
   if (isAdmin) {
     filteredGroups.push({
       label: 'Admin',
@@ -290,6 +299,29 @@ const Layout = ({ children }) => {
         <div key={location.pathname} className="content-wrapper pos-shell-screen-enter">
           {children}
         </div>
+        {showBottomTabs && (
+          <nav className="mobile-bottom-tabs" aria-label="Primary">
+            {tabItems.map((item) => (
+              <button
+                key={item.path}
+                type="button"
+                className={`mobile-tab ${location.pathname === item.path ? 'active' : ''}`}
+                onClick={() => navigate(item.path)}
+                aria-current={location.pathname === item.path ? 'page' : undefined}
+              >
+                <span className="mobile-tab__label">{item.label}</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              className="mobile-tab"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="More menu"
+            >
+              <span className="mobile-tab__label">More</span>
+            </button>
+          </nav>
+        )}
       </main>
     </div>
   );
