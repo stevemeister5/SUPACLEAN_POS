@@ -24,7 +24,8 @@ scripts/seed-invoices-data.js
 scripts/seed-invoices.js
 
 # Task tracking
-TASK.md
+# TASK.md is tracked — do not ignore
+# STATUS.md is tracked — do not ignore
 
 # Build outputs
 client/build/
@@ -52,5 +53,11 @@ Thumbs.db
 # Uploads
 uploads/
 
-# Redundant archive (unpacked source lives in SUPACLEAN Design System/)
+# Redundant archive (unpacked source lives in docs/design-system/)
 SUPACLEAN Design System.zip
+
+# Backups (not source code)
+backups/
+
+# Load testing artifacts
+load-testing/
