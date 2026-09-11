@@ -182,7 +182,18 @@ module.exports = {
   authenticate,
   requireRole,
   requireBranchAccess,
+  requireReceiptAccess,
   requireCleaningAccess,
   requireBranchFeature,
-  requireBranchFeatureAny
+  requireBranchFeatureAny,
+  getEffectiveBranchId
 };
+
+function requireReceiptAccess() {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    next();
+  };
+}

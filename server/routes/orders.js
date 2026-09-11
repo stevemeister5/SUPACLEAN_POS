@@ -394,14 +394,15 @@ router.get('/collection-queue', authenticate, requireBranchAccess(), async (req,
 });
 
 // Get order by receipt number - returns ALL items for the receipt with aggregated totals
-// Case-insensitive receipt number search
-router.get('/receipt/:receiptNumber', authenticate, requireBranchAccess(), async (req, res) => {
+// Case-insensitive receipt number search (receipt numbers are global identifiers, not branch-scoped)
+router.get('/receipt/:receiptNumber', authenticate, requireReceiptAccess(), async (req, res) => {
   const { receiptNumber } = req.params;
-  const branchFilter = getBranchFilter(req, 'o');
   
   try {
-    // Get ALL orders for this receipt number (case-insensitive)
-    // Join with items table to get item names
+    // Get ALL orders for this receipt number (case-insensitive) across all branches.
+    // A receipt number is a global identifier; we do NOT filter by the user's branch so
+    // that lookups succeed even when the receipt lives on a different branch or when
+    // the user has no branch yet.
     const allOrders = await db.all(
       `SELECT o.*, s.name as service_name, s.description as service_description,
               c.name as customer_name, c.phone as customer_phone, c.email as customer_email,
@@ -414,9 +415,8 @@ router.get('/receipt/:receiptNumber', authenticate, requireBranchAccess(), async
        LEFT JOIN items i ON o.item_id = i.id
        LEFT JOIN branches b ON o.branch_id = b.id
        WHERE UPPER(o.receipt_number) = UPPER(?)
-       ${branchFilter.clause}
        ORDER BY o.id`,
-      [receiptNumber, ...branchFilter.params]
+      [receiptNumber]
     );
     
     if (!allOrders || allOrders.length === 0) {
@@ -445,12 +445,16 @@ router.get('/receipt/:receiptNumber', authenticate, requireBranchAccess(), async
 
 // Partial receipt search (Collection page): match by any part of the receipt number.
 // Returns grouped receipt summaries so the user can disambiguate multiple matches.
-router.get('/search/receipt', authenticate, requireBranchAccess(), async (req, res) => {
+// Like the exact receipt lookup, receipt numbers are global identifiers — not branch-scoped
+// — so we do not apply the user's branch filter here.
+router.get('/search/receipt', authenticate, requireReceiptAccess(), async (req, res) => {
   const { q } = req.query;
   if (!q || !q.trim()) {
     return res.status(400).json({ error: 'Query is required' });
   }
-  const branchFilter = getBranchFilter(req, 'o');
+  // Do NOT use branch filter — receipt numbers are global identifiers across all branches
+  // (same as /receipt/:receiptNumber). Apply it only when explicitly restricting to the
+  // user's branch for data-isolation purposes IF the caller is searching a different context.
   const term = `%${q.trim()}%`;
   try {
     const rows = await db.all(
@@ -477,11 +481,10 @@ router.get('/search/receipt', authenticate, requireBranchAccess(), async (req, r
        FROM orders o
        JOIN customers c ON o.customer_id = c.id
        WHERE UPPER(o.receipt_number) LIKE UPPER(?)
-       ${branchFilter.clause}
        GROUP BY o.receipt_number, c.name, c.phone
        ORDER BY MIN(o.id) DESC
        LIMIT 20`,
-      [term, ...branchFilter.params]
+      [term]
     );
     res.json(rows);
   } catch (err) {
