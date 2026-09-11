@@ -1259,6 +1259,7 @@ const Reports = () => {
                 </select>
                 <input
                   type="number"
+                  inputMode="numeric"
                   value={customerFilter.year}
                   onChange={(e) => setCustomerFilter((prev) => ({ ...prev, year: parseInt(e.target.value, 10) || new Date().getFullYear() }))}
                   min="2020"

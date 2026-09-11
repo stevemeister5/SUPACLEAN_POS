@@ -435,6 +435,7 @@ const MonthlyBilling = () => {
                         <td>
                           <input
                             type="number"
+                            inputMode="numeric"
                             min={1}
                             value={it.quantity}
                             onChange={(e) => updateBillItem(it.id, 'quantity', e.target.value)}
@@ -443,6 +444,7 @@ const MonthlyBilling = () => {
                         <td>
                           <input
                             type="number"
+                            inputMode="decimal"
                             step="0.01"
                             min={0}
                             value={it.unit_price}
@@ -638,11 +640,11 @@ const MonthlyBilling = () => {
               <div className="mb-form-row">
                 <div className="mb-field">
                   <label>Discount (TSh)</label>
-                  <input type="number" step="0.01" min={0} value={invForm.discount} onChange={(e) => setInvForm((f) => ({ ...f, discount: e.target.value }))} placeholder="0" />
+                  <input type="number" step="0.01" min={0} value={invForm.discount} onChange={(e) => setInvForm((f) => ({ ...f, discount: e.target.value }))} placeholder="0" inputMode="decimal" />
                 </div>
                 <div className="mb-field">
                   <label>Credit (TSh)</label>
-                  <input type="number" step="0.01" min={0} value={invForm.credit_amount} onChange={(e) => setInvForm((f) => ({ ...f, credit_amount: e.target.value }))} placeholder="0" />
+                  <input type="number" step="0.01" min={0} value={invForm.credit_amount} onChange={(e) => setInvForm((f) => ({ ...f, credit_amount: e.target.value }))} placeholder="0" inputMode="decimal" />
                 </div>
               </div>
               <div className="mb-field">
@@ -666,7 +668,7 @@ const MonthlyBilling = () => {
             <form onSubmit={handleRecordPayment}>
               <div className="mb-field">
                 <label>Amount (TSh) *</label>
-                <input type="number" step="0.01" min={0} value={payForm.amount} onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))} required />
+                <input type="number" step="0.01" min={0} value={payForm.amount} onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))} required inputMode="decimal" />
               </div>
               <div className="mb-field">
                 <label>Payment date *</label>

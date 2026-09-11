@@ -1544,6 +1544,7 @@ ${displayPhone !== 'No phone' ? `Phone: ${displayPhone}\n` : ''}─────�
                 <label>Min Amount (TSh)</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   placeholder="0"
                   value={searchFilters.minAmount}
                   onChange={(e) => handleFilterChange('minAmount', e.target.value)}
@@ -1555,6 +1556,7 @@ ${displayPhone !== 'No phone' ? `Phone: ${displayPhone}\n` : ''}─────�
                 <label>Max Amount (TSh)</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   placeholder="Any"
                   value={searchFilters.maxAmount}
                   onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
@@ -1926,6 +1928,7 @@ ${displayPhone !== 'No phone' ? `Phone: ${displayPhone}\n` : ''}─────�
                   <label>Payment Amount * (full or partial, up to balance due)</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     placeholder={`Enter up to TSh ${balanceDue.toLocaleString()}`}

@@ -464,6 +464,7 @@ const AdminSmsMarketing = () => {
               <input
                 id="sms-campaign-limit"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 max={500}
                 value={limit}

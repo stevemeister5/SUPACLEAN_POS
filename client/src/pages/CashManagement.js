@@ -914,6 +914,7 @@ const CashManagement = () => {
               <label>Declared opening cash *</label>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
                 step="0.01"
                 value={openingCashInput}
@@ -1129,6 +1130,7 @@ const CashManagement = () => {
                 <label>Amount *</label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   min="0"
                   value={depositForm.amount}

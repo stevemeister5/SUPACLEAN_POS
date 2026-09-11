@@ -1661,6 +1661,7 @@ Phone: ${customer.phone}
                               <div className="weight-control">
                                 <input
                                   type="number"
+                                  inputMode="decimal"
                                   step="0.1"
                                   min="0"
                                   placeholder="kg"
@@ -1687,6 +1688,7 @@ Phone: ${customer.phone}
                               {item.manual_price_enabled && (
                                 <input
                                   type="number"
+                                  inputMode="decimal"
                                   step="0.01"
                                   min="0"
                                   placeholder="Manual line price (TSh)"
@@ -1744,6 +1746,7 @@ Phone: ${customer.phone}
                         </select>
                         <input
                           type="number"
+                          inputMode="decimal"
                           min="0"
                           step="0.01"
                           value={receiptDiscountValue}
@@ -1788,6 +1791,7 @@ Phone: ${customer.phone}
                         <label>Advance Payment Amount</label>
                         <input
                           type="number"
+                          inputMode="decimal"
                           step="0.01"
                           min="0"
                           max={payableTotal}

@@ -492,6 +492,7 @@ const Expenses = () => {
                 <label>Amount *</label>
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   min="0"
                   value={formData.amount}

@@ -380,6 +380,7 @@ const PriceList = () => {
                     <label>Base Price (TSh) *</label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       min="0"
                       value={newItem.base_price}
@@ -462,6 +463,7 @@ const PriceList = () => {
                     <label>Base Price (TSh) *</label>
                     <input
                       type="number"
+                      inputMode="decimal"
                       step="0.01"
                       min="0"
                       value={editingItem.base_price}
@@ -524,6 +526,7 @@ const PriceList = () => {
                   <label>Price (TSh) *</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     min="0"
                     value={editingBranchPrice.price || ''}
@@ -702,6 +705,7 @@ const PriceList = () => {
               <div className="setting-input-group">
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.1"
                   min="1"
                   value={editingSettings.express_same_day_multiplier?.value || expressSettings.express_same_day_multiplier?.value || 2}
@@ -721,6 +725,7 @@ const PriceList = () => {
               <div className="setting-input-group">
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="1"
                   value={editingSettings.express_same_day_hours?.value || expressSettings.express_same_day_hours?.value || 8}
                   onChange={(e) => setEditingSettings({
@@ -739,6 +744,7 @@ const PriceList = () => {
               <div className="setting-input-group">
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.1"
                   min="1"
                   value={editingSettings.express_next_day_multiplier?.value || expressSettings.express_next_day_multiplier?.value || 3}
@@ -758,6 +764,7 @@ const PriceList = () => {
               <div className="setting-input-group">
                 <input
                   type="number"
+                  inputMode="numeric"
                   min="1"
                   value={editingSettings.express_next_day_hours?.value || expressSettings.express_next_day_hours?.value || 3}
                   onChange={(e) => setEditingSettings({

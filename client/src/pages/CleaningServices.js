@@ -962,7 +962,7 @@ const CleaningServices = () => {
                 </div>
                 <div className="cs-field">
                   <label>Amount (TSh) *</label>
-                  <input type="number" step="0.01" min={0} value={expenseForm.amount} onChange={(e) => setExpenseForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0" required />
+                  <input type="number" step="0.01" min={0} value={expenseForm.amount} onChange={(e) => setExpenseForm((f) => ({ ...f, amount: e.target.value }))} placeholder="0" required inputMode="decimal" />
                 </div>
               </div>
               <div className="cs-field">
@@ -1031,7 +1031,7 @@ const CleaningServices = () => {
             <form onSubmit={handleRecordPayment}>
               <div className="cs-field">
                 <label>Amount (TSh) *</label>
-                <input type="number" step="0.01" min={0} value={payForm.amount} onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))} required />
+                <input type="number" step="0.01" min={0} value={payForm.amount} onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))} required inputMode="decimal" />
               </div>
               <div className="cs-field">
                 <label>Payment date *</label>
