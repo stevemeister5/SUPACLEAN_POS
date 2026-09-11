@@ -284,3 +284,70 @@
     flex-wrap: wrap;
   }
 }
+
+/* ============================================================
+   UI OPTIMIZATION: AdminSmsMarketing — Status, Touch, Metrics
+   ============================================================ */
+
+/* Campaign cards */
+.campaign-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.campaign-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--info-color);
+}
+
+.campaign-card--sent::before { background: var(--success-color); }
+.campaign-card--scheduled::before { background: var(--status-pending); }
+.campaign-card--draft::before { background: var(--status-voided); }
+.campaign-card--failed::before { background: var(--danger-color); }
+
+/* SMS metrics */
+.sms-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.sms-metric {
+  text-align: center;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.sms-metric-value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.sms-metric-value--sent { color: var(--success-color); }
+.sms-metric-value--failed { color: var(--danger-color); }
+.sms-metric-value--pending { color: var(--status-pending); }
+
+.sms-metric-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Character count */
+.sms-char-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 4px;
+}
+
+.sms-char-count--warning { color: var(--warning-color); }
+.sms-char-count--danger { color: var(--danger-color); }

@@ -996,3 +996,66 @@
   font-weight: 600;
   color: #93c5fd;
 }
+
+/* ============================================================
+   UI OPTIMIZATION: Payroll — Status, Touch, Summary
+   ============================================================ */
+
+/* Staff cards */
+.staff-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.staff-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--info-color);
+}
+
+.staff-card--active::before { background: var(--success-color); }
+.staff-card--onleave::before { background: var(--warning-color); }
+.staff-card--inactive::before { background: var(--status-voided); }
+
+/* Payroll summary */
+.payroll-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.payroll-summary-item {
+  text-align: center;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.payroll-summary-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.payroll-summary-value--net { color: var(--success-color); }
+.payroll-summary-value--deductions { color: var(--danger-color); }
+
+.payroll-summary-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Pay stub rows */
+.pay-stub-row {
+  border-left: 4px solid var(--success-color);
+}
+
+.pay-stub-row--pending {
+  border-left-color: var(--status-pending);
+}

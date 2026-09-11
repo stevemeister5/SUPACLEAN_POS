@@ -1332,3 +1332,89 @@
 .reports-target-btn {
   flex-shrink: 0;
 }
+
+/* ============================================================
+   UI OPTIMIZATION: Reports — Charts, Filters, Summary
+   ============================================================ */
+
+/* Report filters */
+.report-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.report-filters .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.report-filters label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.report-filters input,
+.report-filters select {
+  min-height: 36px;
+}
+
+/* Report summary cards */
+.report-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.report-summary-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.report-summary-card--revenue { border-top: 4px solid var(--success-color); }
+.report-summary-card--orders { border-top: 4px solid var(--info-color); }
+.report-summary-card--customers { border-top: 4px solid var(--primary-color); }
+.report-summary-card--expenses { border-top: 4px solid var(--danger-color); }
+
+.report-summary-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+.report-summary-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Chart container */
+.chart-container {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+}

@@ -158,3 +158,50 @@
   color: #dc3545;
   padding: 20px;
 }
+
+/* ============================================================
+   UI OPTIMIZATION: AdminBanking — Status, Touch, Accounts
+   ============================================================ */
+
+/* Bank account cards */
+.bank-account-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.bank-account-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--info-color);
+}
+
+.bank-account-card.active::before { background: var(--success-color); }
+.bank-account-card.inactive::before { background: var(--status-voided); }
+
+/* Account balance display */
+.account-balance {
+  font-size: 20px;  font-weight: 700;
+  color: var(--success-color);
+}
+
+.account-balance--negative { color: var(--danger-color); }
+
+/* Transaction type badges */
+.txn-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.txn-type--deposit { background: var(--success-light); color: var(--success-color); }
+.txn-type--withdrawal { background: var(--danger-light); color: var(--danger-color); }
+.txn-type--transfer { background: var(--info-light); color: var(--info-color); }

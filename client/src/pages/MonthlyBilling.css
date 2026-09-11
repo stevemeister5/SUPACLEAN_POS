@@ -409,3 +409,49 @@
 .mb-invoice-detail .mb-table {
   margin: 16px 0;
 }
+
+/* ============================================================
+   UI OPTIMIZATION: MonthlyBilling — Status, Touch, Summary
+   ============================================================ */
+
+/* Invoice status */
+.invoice-row {
+  border-left: 4px solid transparent;
+}
+
+.invoice-row--paid { border-left-color: var(--success-color); }
+.invoice-row--pending { border-left-color: var(--status-pending); }
+.invoice-row--overdue { border-left-color: var(--status-overdue); }
+.invoice-row--cancelled { border-left-color: var(--status-voided); opacity: 0.6; }
+
+/* Billing summary */
+.billing-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.billing-summary-card {
+  text-align: center;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.billing-summary-card--total { border-top: 4px solid var(--primary-color); }
+.billing-summary-card--paid { border-top: 4px solid var(--success-color); }
+.billing-summary-card--pending { border-top: 4px solid var(--status-pending); }
+.billing-summary-card--overdue { border-top: 4px solid var(--status-overdue); }
+
+.billing-summary-value {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+.billing-summary-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}

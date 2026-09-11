@@ -914,3 +914,67 @@
 .feature-item:has(input:checked) .feature-name {
   color: var(--primary-color);
 }
+
+/* ============================================================
+   UI OPTIMIZATION: AdminBranches — Status, Touch, Cards
+   ============================================================ */
+
+/* Branch cards */
+.branch-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.branch-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--info-color);
+}
+
+.branch-card.active::before { background: var(--success-color); }
+.branch-card.inactive::before { background: var(--status-voided); }
+
+/* Branch stats grid */
+.branch-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.branch-stat {
+  text-align: center;
+}
+
+.branch-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.branch-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Feature toggle */
+.feature-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-light);
+  min-height: var(--touch-target-min);
+}
+
+.feature-toggle-label {
+  font-weight: 500;
+  font-size: 14px;
+}

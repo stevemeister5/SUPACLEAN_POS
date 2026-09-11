@@ -976,3 +976,116 @@
     text-align: center;
   }
 }
+
+/* ============================================================
+   UI OPTIMIZATION: CashManagement — Status, Touch, Summary
+   ============================================================ */
+
+/* Cash summary hero */
+.cash-summary-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.cash-metric {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.cash-metric--income { border-top: 4px solid var(--success-color); }
+.cash-metric--expenses { border-top: 4px solid var(--danger-color); }
+.cash-metric--balance { border-top: 4px solid var(--primary-color); }
+.cash-metric--deposits { border-top: 4px solid var(--info-color); }
+
+.cash-metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 8px 0;
+}
+
+.cash-metric-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Transaction list */
+.transaction-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background 0.1s ease;
+}
+
+.transaction-row:hover {
+  background: var(--bg-hover);
+}
+
+.transaction-row--credit { border-left: 4px solid var(--success-color); }
+.transaction-row--debit { border-left: 4px solid var(--danger-color); }
+
+.transaction-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.transaction-desc {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.transaction-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.transaction-amount {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.transaction-amount--credit { color: var(--success-color); }
+.transaction-amount--debit { color: var(--danger-color); }
+
+/* Reconciliation status */
+.recon-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.recon-status--locked {
+  background: var(--status-ready-bg);
+  color: var(--status-ready);
+}
+
+.recon-status--open {
+  background: var(--status-pending-bg);
+  color: var(--status-pending);
+}
+
+/* Deposit/Withdraw quick actions */
+.cash-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.cash-quick-actions button {
+  flex: 1;
+  min-height: var(--touch-target-comfortable);
+  font-size: 14px;
+  font-weight: 600;
+}

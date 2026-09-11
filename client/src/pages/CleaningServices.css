@@ -352,3 +352,55 @@
 .cs-modal-wide {
   max-width: 520px;
 }
+
+/* ============================================================
+   UI OPTIMIZATION: CleaningServices — Status, Touch, Cards
+   ============================================================ */
+
+/* Service job cards */
+.cleaning-job-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.cleaning-job-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--service-dry-clean);
+}
+
+.cleaning-job-card--scheduled::before { background: var(--status-pending); }
+.cleaning-job-card--in_progress::before { background: var(--status-processing); }
+.cleaning-job-card--completed::before { background: var(--status-ready); }
+.cleaning-job-card--delivered::before { background: var(--status-collected); }
+
+/* Cleaning summary */
+.cleaning-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.cleaning-summary-item {
+  text-align: center;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.cleaning-summary-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.cleaning-summary-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
