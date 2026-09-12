@@ -6,7 +6,8 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../../.env') });
 
 const isProduction = process.env.NODE_ENV === 'production';
-if (isProduction && !process.env.DATABASE_URL) {
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+if (isProduction && !process.env.DATABASE_URL && !isServerless) {
   console.error('');
   console.error('ERROR:  DATABASE_URL is required in production (e.g. on Render).');
   console.error('   Add it in Render: Dashboard → Your Service → Environment → Add variable:');
