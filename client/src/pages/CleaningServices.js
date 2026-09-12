@@ -115,9 +115,9 @@ const CleaningServices = () => {
     }
   }, [showToast]);
 
-  const loadSummary = useCallback(async () => {
+    const loadSummary = useCallback(async () => {
     try {
-      const res = await getCleaningFinancialSummary(summaryRange);
+      const res = await getCleaningFinancialSummary({ date_from: summaryRange.date_from, date_to: summaryRange.date_to });
       setSummary(res.data || null);
     } catch (e) {
       showToast('Error loading summary: ' + (e.response?.data?.error || e.message), 'error');

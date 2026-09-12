@@ -94,7 +94,7 @@ const CashManagement = () => {
     if (!summary) return;
     const declared = summary.opening_cash_declared != null ? Number(summary.opening_cash_declared) : Number(summary.opening_balance || 0);
     setOpeningCashInput(String(declared));
-  }, [summary?.opening_cash_declared, summary?.opening_balance]);
+  }, [summary?.opening_cash_declared, summary?.opening_balance, summary]);
 
   const loadData = async () => {
     setErrorMessage(null);
@@ -160,9 +160,11 @@ const CashManagement = () => {
     }
   };
 
+
   useEffect(() => {
     loadUnreconciledClosings();
   }, [selectedBranchId]);
+
 
   useEffect(() => {
     if (closeStep === 3 && canManageExpenses && todayExpenses.length === 0) {
