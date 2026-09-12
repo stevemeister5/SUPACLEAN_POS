@@ -17,9 +17,16 @@ if (isProduction && !process.env.DATABASE_URL && !isServerless) {
   process.exit(1);
 }
 
-if (process.env.DATABASE_URL) {
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+if (hasDatabaseUrl) {
   console.log(' Using PostgreSQL (DATABASE_URL set)');
-  const query = require('./query');
+  let query;
+  try {
+    query = require('./query');
+  } catch (error) {
+    console.error('Failed to load PostgreSQL query helper on serverless:', error && error.message ? error.message : error);
+    throw new Error('PostgreSQL dependencies are unavailable. Please verify the deployment includes pg and set DATABASE_URL.');
+  }
   const wrap = (fn) => function (sql, ...args) {
     const cb = typeof args[args.length - 1] === 'function' ? args.pop() : null;
     const params = Array.isArray(args[0]) ? args[0] : args;
@@ -49,6 +56,23 @@ if (process.env.DATABASE_URL) {
     all: wrap(query.all),
     run: runCb(query.run),
   };
+} else if (isServerless) {
+  const missingDbError = new Error('DATABASE_URL environment variable is required on Vercel. Set it to your PostgreSQL connection string.');
+  console.error(missingDbError.message);
+  const fail = () => {
+    throw missingDbError;
+  };
+  module.exports = new Proxy({ then: undefined }, { get: (target, prop) => (prop === 'then' ? undefined : fail) });
 } else {
-  module.exports = require('./init');
+  let initDb;
+  try {
+    // Keep sqlite3 out of static serverless bundles by requiring at runtime only.
+    // eslint-disable-next-line global-require
+    const runtimeRequire = eval('require');
+    initDb = runtimeRequire('./init');
+  } catch (error) {
+    console.error('Failed to load SQLite database:', error && error.message ? error.message : error);
+    throw new Error('SQLite is unavailable in this runtime. Set DATABASE_URL to use PostgreSQL.');
+  }
+  module.exports = initDb;
 }

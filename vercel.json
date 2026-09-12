@@ -7,6 +7,10 @@
       "config": {
         "includeFiles": [
           "server/**"
+        ],
+        "external": [
+          "sqlite3",
+          "better-sqlite3"
         ]
       }
     },
