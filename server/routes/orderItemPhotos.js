@@ -14,11 +14,17 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const uploadsDir = path.join(__dirname, '../../uploads');
+const uploadsDir = process.env.VERCEL
+  ? path.join('/tmp', 'uploads')
+  : path.join(__dirname, '../../uploads');
 const itemPhotosDir = path.join(uploadsDir, 'item-photos');
 
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-if (!fs.existsSync(itemPhotosDir)) fs.mkdirSync(itemPhotosDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+  if (!fs.existsSync(itemPhotosDir)) fs.mkdirSync(itemPhotosDir, { recursive: true });
+} catch (error) {
+  console.error('Item photo directory unavailable:', error && error.message ? error.message : error);
+}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, itemPhotosDir),
