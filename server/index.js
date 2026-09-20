@@ -42,21 +42,37 @@ app.use(
 
 app.use(compression());
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    const normalized = normalizeOrigin(origin);
-    if (allowedOrigins.includes(normalized)) return callback(null, true);
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
-  },
-  credentials: true
+app.use(cors((req, callback) => {
+  const origin = req.headers.origin;
+
+  // Same-origin requests (and non-browser clients) are always allowed.
+  if (!origin) return callback(null, { origin: true, credentials: true });
+
+  const normalized = normalizeOrigin(origin);
+  const forwardedHost = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0];
+  const forwardedProto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0];
+  const selfOrigin = normalizeOrigin(forwardedHost ? `${forwardedProto}://${forwardedHost}` : '');
+
+  // Allow the deployment's own origin (browser sends Origin on same-origin POST/PUT/DELETE)
+  // in addition to the explicitly configured CLIENT_URL / RENDER_EXTERNAL_URL values.
+  if (allowedOrigins.includes(normalized) || (selfOrigin && normalized === selfOrigin)) {
+    return callback(null, { origin: true, credentials: true });
+  }
+
+  return callback(new Error(`CORS blocked for origin: ${origin}`));
 }));
 app.use(bodyParser.json({ limit: '2mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '2mb' }));
 
 app.use((req, res, next) => {
-  req.setTimeout(30000);
-  res.setTimeout(30000);
+  // Vercel's serverless runtime uses a mock socket that has no setTimeout,
+  // so calling req.setTimeout()/res.setTimeout() there throws a TypeError.
+  try {
+    if (req.socket && typeof req.socket.setTimeout === 'function') req.socket.setTimeout(30000);
+    if (res.socket && typeof res.socket.setTimeout === 'function') res.socket.setTimeout(30000);
+  } catch (err) {
+    console.warn('Socket timeout is not supported in this runtime:', err.message);
+  }
   next();
 });
 
@@ -68,23 +84,47 @@ if (!isProduction) {
 }
 
 require('./database/db');
-require('./database/ensurePosCoreSchema');
-require('./database/ensureBranchFeaturesSchema');
-require('./database/ensureBankingSchema');
-require('./database/ensureNotificationsDedupeKey');
-require('./database/ensureUsersAuthSchema');
-require('./database/ensurePayrollSchema');
-require('./database/ensureExpenseCategoriesSchema');
-require('./database/ensureCleaningSchema');
-require('./database/ensureOrderVoidSchema');
-require('./database/ensureOrderArchiveSchema');
-require('./database/ensureAdminInboxSchema');
-require('./database/ensureReceiptSequenceSchema');
-require('./database/ensureItemsSchema');
-require('./database/ensurePerformanceIndexes');
-require('./database/ensureLongevitySchema');
-require('./database/ensureSmsMarketingSchema');
-require('./database/ensureMonthlyBillingSchema');
+
+// Idempotent boot-time DDL (see server/database/schemaEnsure.js). On serverless
+// these run staggered so a cold start cannot fire them all at once, and they are
+// skipped unless RUN_SCHEMA_ENSURE=1.
+const SCHEMA_ENSURE_MODULES = [
+  './database/ensurePosCoreSchema',
+  './database/ensureBranchFeaturesSchema',
+  './database/ensureBankingSchema',
+  './database/ensureNotificationsDedupeKey',
+  './database/ensureUsersAuthSchema',
+  './database/ensurePayrollSchema',
+  './database/ensureExpenseCategoriesSchema',
+  './database/ensureCleaningSchema',
+  './database/ensureOrderVoidSchema',
+  './database/ensureOrderArchiveSchema',
+  './database/ensureAdminInboxSchema',
+  './database/ensureReceiptSequenceSchema',
+  './database/ensureItemsSchema',
+  './database/ensurePerformanceIndexes',
+  './database/ensureLongevitySchema',
+  './database/ensureSmsMarketingSchema',
+  './database/ensureMonthlyBillingSchema',
+];
+
+const { shouldRunSchemaEnsure } = require('./database/schemaEnsure');
+
+if (shouldRunSchemaEnsure()) {
+  const staggerMs = process.env.VERCEL ? 250 : 0;
+  (async () => {
+    for (const modulePath of SCHEMA_ENSURE_MODULES) {
+      try {
+        require(modulePath);
+      } catch (err) {
+        console.error(`Schema ensure failed to load: ${modulePath}`, err.message);
+      }
+      if (staggerMs) await new Promise((resolve) => setTimeout(resolve, staggerMs));
+    }
+  })();
+} else {
+  console.log('Skipping boot-time schema ensure on this runtime (set RUN_SCHEMA_ENSURE=1 to run it).');
+}
 
 try {
   app.use('/api/auth', require('./routes/auth'));
@@ -167,7 +207,15 @@ app.use('/uploads', authenticate, express.static(path.join(__dirname, '../upload
   fallthrough: false,
 }));
 
-if (isProduction) {
+// Unknown API routes must answer with an error, never the SPA shell.
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `Not found: ${req.method} ${req.originalUrl}` });
+});
+
+// Express serves the built frontend only when it is the host of the deployment
+// itself (Render, Docker, `node server/index.js`). On Vercel the static build
+// output is served by the CDN, so this function must not answer page requests.
+if (isProduction && !process.env.VERCEL) {
   const buildDir = path.join(__dirname, '../client/build');
   const fs = require('fs');
   if (!fs.existsSync(path.join(buildDir, 'index.html'))) {

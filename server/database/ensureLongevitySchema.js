@@ -7,6 +7,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../../.env') }
 if (!process.env.DATABASE_URL) return;
 
 const db = require('./query');
+const { shouldRunSchemaEnsure } = require('./schemaEnsure');
 const { normalizePhoneDigits } = require('../utils/customerPhone');
 
 async function backfillPhoneNormalizedBatch(limit = 5000) {
@@ -89,6 +90,9 @@ async function ensurePhoneNormalizedIndexes() {
 }
 
 (async () => {
+  // Runs on long-running servers (local dev / Render); skipped on serverless
+  // cold starts unless RUN_SCHEMA_ENSURE=1 (see ./schemaEnsure).
+  if (!shouldRunSchemaEnsure()) return;
   try {
     await db.run(
       `CREATE TABLE IF NOT EXISTS idempotency_keys (

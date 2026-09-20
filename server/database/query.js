@@ -23,7 +23,9 @@ const dbPool = new Pool({
     : false,
   max: poolMax,
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 10000, // Increased to 10 seconds for Supabase pooler
+  // Generous connect timeout: managed Postgres (Neon/Supabase) can be slow to
+  // accept the first connection when the compute has scaled down to zero.
+  connectionTimeoutMillis: 30000,
 });
 
 // Log first pool connection only (each schema module triggers its own query on startup).
