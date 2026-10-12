@@ -10,8 +10,8 @@
   - Points are automatically calculated and awarded on collection
 
 ### Points Redemption
-- **Minimum redemption: 100 points**
-- **100 points = Free wash worth 10,000 TSh**
+- **Minimum redemption: 10 points**
+- **10 points = 10,000 TSh discount** (redemptions in multiples of 10 points)
 - Redemption applies discount to orders
 
 ### Loyalty Tiers
@@ -54,9 +54,9 @@ The loyalty program is now integrated into the **Reports** section:
 6. Tier recalculated if needed
 
 ### Redeeming Points
-1. Customer needs minimum 100 points
+1. Customer needs minimum 10 points
 2. Cashier redeems via API: `POST /api/loyalty/redeem`
-3. System calculates discount: `floor(points / 100) * 10000`
+3. System calculates discount: `floor(points / 10) * 10000`
 4. Points deducted from customer account
 5. Transaction recorded in `loyalty_transactions`
 
@@ -70,17 +70,17 @@ The loyalty program is now integrated into the **Reports** section:
 - Order amount: 15,000 TSh
 - Points earned: `floor(15000 / 20000) = 0 points` (need 20,000+ to earn 1 point)
 
-**Scenario 3: Redeeming Free Wash**
+**Scenario 3: Redeeming a Discount**
 - Customer has: 150 points
-- Redeems: 100 points
+- Redeems: 10 points
 - Gets: 10,000 TSh discount
-- Remaining: 50 points
+- Remaining: 140 points
 
-**Scenario 4: Redeeming Multiple Free Washes**
-- Customer has: 350 points
-- Redeems: 300 points
+**Scenario 4: Redeeming Multiple Discounts**
+- Customer has: 35 points
+- Redeems: 30 points
 - Gets: 30,000 TSh discount (3 × 10,000 TSh)
-- Remaining: 50 points
+- Remaining: 5 points
 
 ## 🗄️ Database Structure
 
@@ -106,7 +106,7 @@ The loyalty program is now integrated into the **Reports** section:
 ```sql
 - name (TEXT) - "Free Wash"
 - description (TEXT)
-- points_required (INTEGER) - 100
+- points_required (INTEGER) - 10
 - service_value (REAL) - 10000
 - discount_amount (REAL) - 10000
 ```
@@ -129,7 +129,7 @@ GET /api/loyalty/customer/:customerId/transactions?limit=50
 POST /api/loyalty/redeem
 Body: {
   "customerId": 1,
-  "points": 100,
+  "points": 10,
   "orderId": 123 (optional)
 }
 ```
@@ -149,7 +149,7 @@ GET /api/reports/customers?month=12&year=2024
 1. **Points are only awarded on collection**, not on order creation
 2. **Only fully paid orders** count towards points
 3. **Minimum spend per point**: 20,000 TSh (orders under 20,000 TSh earn 0 points)
-4. **Minimum redemption**: 100 points (one free wash)
+4. **Minimum redemption**: 10 points (= 10,000 TSh discount)
 5. **Points never expire** (stored as lifetime_points)
 6. **Tiers are based on lifetime points**, not current points
 

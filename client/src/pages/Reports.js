@@ -1296,7 +1296,7 @@ const Reports = () => {
                 )}
               </div>
               <div className="reports-info-banner">
-                <strong>Loyalty points:</strong> 1 point per 20,000 TSh spent. 100 points = free wash worth 10,000 TSh
+                <strong>Loyalty points:</strong> 1 point per 20,000 TSh spent. 10 points = 10,000 TSh discount
               </div>
               <div className="table-wrapper interactive-scroll-region" tabIndex={0} role="region" aria-label="Customer report table" {...tableScrollHandlers}>
                 {hasCustomerData ? (

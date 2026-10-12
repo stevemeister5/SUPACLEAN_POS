@@ -763,15 +763,15 @@ function migrateDatabase() {
       });
       
       function insertDefaultLoyaltyReward() {
-        // Insert default reward: 100 points = Free wash worth 10,000 TSh
+        // Insert default reward: 10 points = Free wash worth 10,000 TSh
         // Try with service_value first
         db.run(`INSERT OR IGNORE INTO loyalty_rewards (name, description, points_required, service_value, discount_amount) VALUES
-          ('Free Wash', 'Free wash service worth TSh 10,000', 100, 10000, 10000)`, (insertErr) => {
+          ('Free Wash', 'Free wash service worth TSh 10,000', 10, 10000, 10000)`, (insertErr) => {
           if (insertErr) {
             // If service_value column doesn't exist yet, try without it
             if (insertErr.message.includes('service_value') || insertErr.message.includes('no such column')) {
               db.run(`INSERT OR IGNORE INTO loyalty_rewards (name, description, points_required, discount_amount) VALUES
-                ('Free Wash', 'Free wash service worth TSh 10,000', 100, 10000)`, (retryErr) => {
+                ('Free Wash', 'Free wash service worth TSh 10,000', 10, 10000)`, (retryErr) => {
                 if (retryErr) {
                   console.error('Error inserting default reward:', retryErr.message);
                 }
@@ -780,6 +780,13 @@ function migrateDatabase() {
               console.error('Error inserting default reward:', insertErr.message);
             }
           }
+          // Migrate legacy default (100 points) to the new 10-point redemption rule.
+          // Only touches rows still at the old default value, so custom edits are preserved.
+          db.run(`UPDATE loyalty_rewards SET points_required = 10 WHERE name = 'Free Wash' AND points_required = 100`, (updateErr) => {
+            if (updateErr) {
+              console.error('Error updating default reward points_required:', updateErr.message);
+            }
+          });
         });
       }
       

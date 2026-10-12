@@ -10,6 +10,9 @@ router.use(authenticate);
 const LOYALTY_CONFIG = {
   pointsPerTSh: 1 / 20000, // 1 point per 20,000 TSh spent
   minSpendForPoint: 20000, // Minimum spend to earn 1 point
+  minRedeemPoints: 10, // Minimum points required to redeem
+  pointsPerRedemption: 10, // Every 10 points converts to one discount block
+  redemptionValueTSh: 10000, // Discount granted per 10-point block (10 points = 10,000 TSh)
   tiers: {
     Bronze: { minPoints: 0, multiplier: 1 },
     Silver: { minPoints: 500, multiplier: 1.2 },
@@ -159,7 +162,7 @@ router.post('/earn', requireAnyPermission('canManageOrders', 'canManageCash'), a
   }
 });
 
-// Redeem points for free wash (100 points = 10,000 TSh discount)
+// Redeem points for discount (10 points = 10,000 TSh discount)
 router.post('/redeem', requireAnyPermission('canManageOrders', 'canManageCash'), async (req, res) => {
   const { customerId, points, orderId, rewardId } = req.body;
 
@@ -167,9 +170,18 @@ router.post('/redeem', requireAnyPermission('canManageOrders', 'canManageCash'),
     return res.status(400).json({ error: 'Customer ID and valid points amount are required' });
   }
 
-  // Check if redeeming for free wash reward (100 points minimum)
-  if (points < 100) {
-    return res.status(400).json({ error: 'Minimum 100 points required to redeem for free wash (worth 10,000 TSh)' });
+  // Minimum redemption: 10 points (worth 10,000 TSh)
+  if (points < LOYALTY_CONFIG.minRedeemPoints) {
+    return res.status(400).json({
+      error: `Minimum ${LOYALTY_CONFIG.minRedeemPoints} points required to redeem (worth TSh ${LOYALTY_CONFIG.redemptionValueTSh.toLocaleString()} discount)`
+    });
+  }
+
+  // Only full 10-point blocks convert to discount (prevents silently wasting points)
+  if (points % LOYALTY_CONFIG.pointsPerRedemption !== 0) {
+    return res.status(400).json({
+      error: `Redeem in multiples of ${LOYALTY_CONFIG.pointsPerRedemption} points (${LOYALTY_CONFIG.pointsPerRedemption} points = TSh ${LOYALTY_CONFIG.redemptionValueTSh.toLocaleString()} discount)`
+    });
   }
 
   try {
@@ -183,10 +195,8 @@ router.post('/redeem', requireAnyPermission('canManageOrders', 'canManageCash'),
     }
 
     const newPoints = loyalty.current_points - points;
-    // Calculate discount: 100 points = 10,000 TSh discount
-    // If redeeming exactly 100 points, discount is 10,000 TSh
-    // For every 100 points, customer gets 10,000 TSh discount
-    const discountAmount = Math.floor(points / 100) * 10000;
+    // Discount: every 10 points = 10,000 TSh discount
+    const discountAmount = Math.floor(points / LOYALTY_CONFIG.pointsPerRedemption) * LOYALTY_CONFIG.redemptionValueTSh;
 
     await db.run(
       'UPDATE loyalty_points SET current_points = ?, updated_at = CURRENT_TIMESTAMP WHERE customer_id = ?',
@@ -194,7 +204,7 @@ router.post('/redeem', requireAnyPermission('canManageOrders', 'canManageCash'),
     );
     
     // Record transaction
-    const description = points === 100 
+    const description = points === LOYALTY_CONFIG.pointsPerRedemption
       ? 'Points redeemed for Free Wash (worth 10,000 TSh)' 
       : `Points redeemed for ${discountAmount.toLocaleString()} TSh discount`;
     
@@ -207,7 +217,7 @@ router.post('/redeem', requireAnyPermission('canManageOrders', 'canManageCash'),
       points_redeemed: points,
       current_points: newPoints,
       discount_amount: discountAmount,
-      message: points === 100 
+      message: points === LOYALTY_CONFIG.pointsPerRedemption
         ? 'Free wash redeemed successfully (worth 10,000 TSh)' 
         : `Discount of TSh ${discountAmount.toLocaleString()} applied`
     });
