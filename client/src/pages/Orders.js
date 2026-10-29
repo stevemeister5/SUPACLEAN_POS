@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { getOrders, getOrderByReceipt, updateOrderStatus, updateEstimatedCollectionDate, uploadStockExcel, updateOrderCustomerPhone, receivePayment, sendCollectionReminder, voidOrderReceipt, requestVoidOrderReceipt, getPendingVoidRequests, archiveOldOrders } from '../api/api';
+import { getOrders, getOrderByReceipt, updateOrderStatus, updateEstimatedCollectionDate, uploadStockExcel, updateOrderCustomerPhone, receivePayment, sendCollectionReminder, voidOrderReceipt, requestVoidOrderReceipt, getPendingVoidRequests, archiveOldOrders, collectOrder, searchCustomers, getCollectionQueue, searchReceipts, searchOrdersByCustomer } from '../api/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
 import { useListViewPreference } from '../hooks/useListViewPreference';
@@ -53,6 +53,13 @@ const Orders = () => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentDate, setPaymentDate] = useState(todayYmd());
   const [receivingPayment, setReceivingPayment] = useState(false);
+  // Collect flow (ported from Collection page): collect whole receipt + optional final payment
+  const [showCollectPaymentModal, setShowCollectPaymentModal] = useState(false);
+  const [selectedReceiptForCollect, setSelectedReceiptForCollect] = useState(null); // { receipt_number, balance, items }
+  const [collectPaymentAmount, setCollectPaymentAmount] = useState('');
+  const [collectPaymentMethod, setCollectPaymentMethod] = useState('cash');
+  const [collectPaymentDate, setCollectPaymentDate] = useState(todayYmd());
+  const [collectingReceipt, setCollectingReceipt] = useState(null);
   const [sendingReminder, setSendingReminder] = useState(null);
   const [expandedReceipts, setExpandedReceipts] = useState(new Set()); // Track which receipts are expanded
   const [receiptDetails, setReceiptDetails] = useState({}); // receipt -> { order, loading, error }
@@ -76,6 +83,20 @@ const Orders = () => {
   const [archivingOldOrders, setArchivingOldOrders] = useState(false);
   const [showExportPopup, setShowExportPopup] = useState(false);
   const ordersSearchInputRef = useRef(null);
+  // Task 2.3 — Receipt scan box (scans any part of a receipt number)
+  const [scanReceiptNumber, setScanReceiptNumber] = useState('');
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanResult, setScanResult] = useState([]); // { receipt_number, customer_name, status, ... }
+  const [scanError, setScanError] = useState('');
+  // Task 2.4 — Find receipts by customer/phone
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerReceipts, setCustomerReceipts] = useState([]);
+  const [customerReceiptsLoading, setCustomerReceiptsLoading] = useState(false);
+  const [customerReceiptsError, setCustomerReceiptsError] = useState('');
+  // Task 2.2 — Ready queue
+  const [showReadyQueue, setShowReadyQueue] = useState(false);
+  const [readyQueueOrders, setReadyQueueOrders] = useState([]);
+  const [readyQueueLoading, setReadyQueueLoading] = useState(false);
   const tableScrollHandlers = useHorizontalScrollRegion();
 
   // F2: focus order search (customer name or phone) for quick access
@@ -116,6 +137,84 @@ const Orders = () => {
       console.error('Failed to load pending void requests:', err);
     }
   }, [hasPermission, selectedBranchId]);
+
+  // ---------- Task 2.3: receipt scan ----------
+  const handleScanReceipt = async (e) => {
+    e.preventDefault();
+    const q = scanReceiptNumber.trim();
+    if (!q) { setScanError('Enter a receipt number to scan'); return; }
+    setScanLoading(true);
+    setScanError('');
+    try {
+      const res = await searchReceipts(q);
+      const rows = res.data || [];
+      setScanResult(rows.slice(0, 12));
+      if (rows.length === 1) {
+        showToast('Single receipt found — opening', 'info');
+      } else if (rows.length === 0) {
+        setScanError('No receipts matched that number');
+      }
+    } catch (err) {
+      setScanError(err.response?.data?.error || 'Failed to search receipts');
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  // ---------- Task 2.4: find receipts by customer/phone ----------
+  const handleCustomerSearch = async (e) => {
+    e.preventDefault();
+    const q = customerSearch.trim();
+    if (!q) { setCustomerReceiptsError(''); return; }
+    setCustomerReceiptsLoading(true);
+    setCustomerReceiptsError('');
+    try {
+      const [custRes, ordersRes] = await Promise.all([
+        searchCustomers(q),
+        searchOrdersByCustomer({ customer: q }),
+      ]);
+      const orders = ordersRes.data || [];
+      if (orders.length === 0) {
+        setCustomerReceiptsError('No receipts found on this customer');
+      }
+      setCustomerReceipts(orders.slice(0, 50));
+    } catch (err) {
+      setCustomerReceiptsError(err.response?.data?.error || 'Failed to load receipts');
+    } finally {
+      setCustomerReceiptsLoading(false);
+    }
+  };
+
+  // ---------- Task 2.2: ready queue ----------
+  const handleToggleReadyQueue = async (e) => {
+    e.preventDefault();
+    if (!showReadyQueue) {
+      setReadyQueueLoading(true);
+      setReadyQueueOrders([]);
+      try {
+        const res = await getCollectionQueue({ overdue_only: 'true' });
+        setReadyQueueOrders(res.data || []);
+      } catch (err) {
+        try {
+          const res = await getCollectionQueue({});
+          setReadyQueueOrders(res.data || []);
+        } catch (err2) {
+          setReadyQueueOrders([]);
+        }
+      } finally {
+        setReadyQueueLoading(false);
+      }
+    }
+    setShowReadyQueue((v) => !v);
+  };
+
+  const handleReadyQueueLoadMore = async () => {
+    if (readyQueueLoading) return;
+    const param = showReadyQueue ? { overdue_only: 'true' } : {};
+    const res = await getCollectionQueue(param);
+    setReadyQueueOrders((prev) => [...prev, ...(res.data || [])]);
+    setReadyQueueLoading(true);
+  };
 
   const loadOrders = useCallback(async (append = false, offsetOverride = undefined, filtersOverride = null, filterOverride = null) => {
     const f = filtersOverride ?? debouncedSearchFilters;
@@ -225,6 +324,66 @@ const Orders = () => {
       const msg = error.response?.data?.error || error.message;
       showToast(msg, 'error');
     }
+  };
+
+  // Task 2.1 — Collect flow ported from Collection page.
+  // Collects the whole receipt via POST /orders/collect/:receiptNumber (handles
+  // payment + marks collected), with optional final payment when a balance remains.
+  const handleCollectReceipt = (receiptGroup) => {
+    const items = Array.isArray(receiptGroup.items) ? receiptGroup.items : [];
+    const allReady = items.length > 0 && items.every((item) => item.status === 'ready');
+    if (!allReady) {
+      showToast('Not all items on this receipt are ready for collection', 'warning');
+      return;
+    }
+    const balance = receiptGroup.total_amount - receiptGroup.paid_amount;
+    setSelectedReceiptForCollect({ ...receiptGroup, balance, items });
+    setCollectPaymentAmount(balance > 0 ? balance.toString() : '');
+    setCollectPaymentMethod('cash');
+    setCollectPaymentDate(todayYmd());
+    if (balance > 0) {
+      setShowCollectPaymentModal(true);
+    } else {
+      setShowCollectPaymentModal(false);
+      handleCollectSubmit();
+    }
+  };
+
+  const handleCollectSubmit = async () => {
+    if (!selectedReceiptForCollect) return;
+    setCollectingReceipt(selectedReceiptForCollect.receipt_number);
+    try {
+      const paymentData = {
+        payment_amount: collectPaymentAmount ? parseFloat(collectPaymentAmount) : 0,
+        payment_method: collectPaymentMethod,
+        payment_date: collectPaymentDate,
+      };
+      const res = await collectOrder(selectedReceiptForCollect.receipt_number, paymentData);
+      const itemCount = res.data?.order?.receipt_item_count || selectedReceiptForCollect.items.length || 1;
+      showToast(
+        `Receipt collected successfully! (${itemCount} ${itemCount === 1 ? 'item' : 'items'})`,
+        'success'
+      );
+      if (paymentData.payment_amount > 0) {
+        showToast(`Payment of TSh ${paymentData.payment_amount.toLocaleString()} recorded`, 'success');
+      }
+      setSelectedReceiptForCollect(null);
+      setShowCollectPaymentModal(false);
+      setCollectPaymentAmount('');
+      setCollectPaymentDate(todayYmd());
+      loadOrders(false);
+    } catch (error) {
+      showToast('Error collecting receipt: ' + (error.response?.data?.error || error.message), 'error');
+    } finally {
+      setCollectingReceipt(null);
+    }
+  };
+
+  const handleCancelCollect = () => {
+    setShowCollectPaymentModal(false);
+    setSelectedReceiptForCollect(null);
+    setCollectPaymentAmount('');
+    setCollectPaymentDate(todayYmd());
   };
 
   const handleEditEstimatedDate = (orderId, currentDate) => {
@@ -988,11 +1147,11 @@ ${displayPhone !== 'No phone' ? `Phone: ${displayPhone}\n` : ''}─────�
         <button
           type="button"
           className="dk-btn dk-btn--primary dk-btn--sm"
-          onClick={() => handleReceiptStatusUpdate(receiptGroup.items, 'collected')}
-          disabled={balance > 0}
-          title={balance > 0 ? 'Pay balance first' : 'Collect'}
+          onClick={() => handleCollectReceipt(receiptGroup)}
+          disabled={collectingReceipt === receiptGroup.receipt_number}
+          title="Collect receipt + optional final payment"
         >
-          Collect
+          {collectingReceipt === receiptGroup.receipt_number ? 'Collecting…' : 'Collect'}
         </button>
       );
     } else if (!archivedOrVoided && !voidPending && balance > 0) {
@@ -1372,6 +1531,77 @@ ${displayPhone !== 'No phone' ? `Phone: ${displayPhone}\n` : ''}─────�
 
   return (
     <div className="orders-page">
+      {/* Task 2.3 — Receipt scan box */}
+      <div className="orders-filters-section" style={{ marginTop: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', alignItems: 'end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', alignItems: 'end' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>📷 Receipt scan (any part of the number)</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input type="text" inputMode="text" value={scanReceiptNumber} onChange={(e) => setScanReceiptNumber(e.target.value.toUpperCase())} placeholder="e.g. 000001 or ...0001" disabled={scanLoading} style={{ flex: 1 }} />
+                <button type="button" className="btn-primary" onClick={handleScanReceipt} disabled={scanLoading || !scanReceiptNumber.trim()} style={{ whiteSpace: 'nowrap' }}>{scanLoading ? '…' : 'Scan'}</button>
+              </div>
+              {scanError && <div style={{ fontSize: '13px', color: 'var(--danger-color)', marginTop: 6 }}>⚠️ {scanError}</div>}
+            </div>
+            {scanResult.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {scanResult.map((r) => (
+                  <button key={r.receipt_number} type="button" className="btn-small btn-secondary" onClick={() => setExpandedReceipts(new Set([r.receipt_number]))} style={{ justifyContent: 'space-between' }}>
+                    <span>{r.receipt_number} · {r.customer_name || '—'}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{r.status}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px' }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>👤 Customer lookup</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input type="text" value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} placeholder="Customer name or phone..." style={{ flex: 1 }} />
+                <button type="button" className="btn-primary" onClick={handleCustomerSearch} disabled={!customerSearch.trim()} style={{ whiteSpace: 'nowrap' }}>Search</button>
+              </div>
+              {customerReceiptsError && <div style={{ fontSize: '13px', color: 'var(--danger-color)', marginTop: 6 }}>⚠️ {customerReceiptsError}</div>}
+            </div>
+            {customerReceipts.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {customerReceipts.slice(0, 10).map((r) => (
+                  <button key={r.receipt_number} type="button" className="btn-small btn-secondary" onClick={() => setExpandedReceipts(new Set([r.receipt_number]))}>
+                    <span>{r.receipt_number} · {r.customer_name || '—'}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* Task 2.2 — Ready queue */}
+      <div style={{ marginTop: '16px' }}>
+        <button type="button" className="btn-secondary" onClick={handleToggleReadyQueue} style={{ width: '100%', justifyContent: 'space-between' }}>
+          <span>📦 Ready queue</span>
+          <span>{readyQueueLoading ? '…' : `${readyQueueOrders.length} orders`}</span>
+        </button>
+        {showReadyQueue && (
+          <div style={{ marginTop: '8px' }}>
+            {readyQueueLoading ? <div className="loader-small" style={{ padding: '8px' }} /> : readyQueueOrders.length === 0 ? <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No ready receipts at this time.</div> : (
+              <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px' }}>
+                {readyQueueOrders.slice(0, 60).map((o) => {
+                  const overdue = o.estimated_collection_date ? new Date(o.estimated_collection_date) < new Date() && o.status === 'ready' : false;
+                  return (
+                    <li key={o.receipt_number} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '4px 0', borderBottom: '1px solid var(--border-color)' }}>
+                      <span>{o.receipt_number} · {o.customer_name || '—'}</span>
+                      <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', color: overdue ? 'var(--danger-color)' : 'var(--text-muted)' }}>{overdue ? '⏰ OVERDUE' : 'ready'}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{o.estimated_collection_date ? new Date(o.estimated_collection_date).toLocaleString() : '—'}</span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
       <ToastContainer />
       {showExportPopup && (
         <div className="export-popup-overlay" onClick={() => setShowExportPopup(false)} role="dialog" aria-label="Export options">
@@ -1981,6 +2211,100 @@ ${displayPhone !== 'No phone' ? `Phone: ${displayPhone}\n` : ''}─────�
             </form>
           </div>
         </div>
+        );
+      })()}
+
+      {/* Collect Payment Modal (ported from Collection page) */}
+      {showCollectPaymentModal && selectedReceiptForCollect && (() => {
+        const balance = selectedReceiptForCollect.balance || 0;
+        return (
+          <div className="modal-overlay" onClick={() => handleCancelCollect()}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>📦 Collect Receipt</h2>
+                <button className="modal-close" onClick={handleCancelCollect}>×</button>
+              </div>
+              <form onSubmit={(e) => { e.preventDefault(); handleCollectSubmit(); }}>
+                <div className="modal-body">
+                  <div className="payment-summary">
+                    <div className="payment-item">
+                      <span>Receipt No:</span>
+                      <strong>{formatReceiptForDisplay(selectedReceiptForCollect.receipt_number, selectedReceiptForCollect.items)}</strong>
+                    </div>
+                    <div className="payment-item">
+                      <span>Customer:</span>
+                      <strong>{selectedReceiptForCollect.customer_name}</strong>
+                    </div>
+                    <div className="payment-item">
+                      <span>Total Amount:</span>
+                      <strong>TSh {selectedReceiptForCollect.total_amount.toLocaleString()}</strong>
+                    </div>
+                    <div className="payment-item">
+                      <span>Already Paid:</span>
+                      <strong>TSh {selectedReceiptForCollect.paid_amount.toLocaleString()}</strong>
+                    </div>
+                    <div className="payment-item balance-due">
+                      <span>Balance Due:</span>
+                      <strong>TSh {balance.toLocaleString()}</strong>
+                    </div>
+                  </div>
+                  {balance > 0 && (
+                    <>
+                      <div className="form-group">
+                        <label>Final Payment Amount *</label>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          value={collectPaymentAmount}
+                          onChange={(e) => setCollectPaymentAmount(e.target.value)}
+                          placeholder={`Enter up to TSh ${balance.toLocaleString()}`}
+                          min="0"
+                          step="0.01"
+                          required
+                          autoFocus
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Payment Method *</label>
+                        <select
+                          value={collectPaymentMethod}
+                          onChange={(e) => setCollectPaymentMethod(e.target.value)}
+                          required
+                        >
+                          <option value="cash">Cash</option>
+                          <option value="mobile_money">Mobile Money</option>
+                          <option value="card">Card</option>
+                          <option value="bank_transfer">Bank Transfer</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Payment Date *</label>
+                        <input
+                          type="date"
+                          value={collectPaymentDate}
+                          onChange={(e) => setCollectPaymentDate(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
+                  {balance <= 0 && (
+                    <div className="info-notice" style={{ marginTop: '15px', padding: '10px', background: 'var(--success-light)', borderRadius: '8px', fontSize: '14px' }}>
+                      ✅ No balance due — collecting receipt as fully paid.
+                    </div>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn-secondary" onClick={handleCancelCollect}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-primary" disabled={collectingReceipt === selectedReceiptForCollect.receipt_number}>
+                    {collectingReceipt === selectedReceiptForCollect.receipt_number ? '⏳ Collecting…' : '📦 Collect Receipt'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         );
       })()}
     </div>

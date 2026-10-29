@@ -90,7 +90,7 @@ const Layout = ({ children }) => {
   }, [location.pathname]);
 
   const ROLE_NAV_PRESETS = {
-    cashier: ['/dashboard', '/new-order', '/collection', '/orders', '/cash-management'],
+    cashier: ['/dashboard', '/new-order', '/orders', '/cash-management'],
     processor: ['/dashboard', '/orders'],
     manager: null,
     admin: null
@@ -107,7 +107,6 @@ const Layout = ({ children }) => {
       label: 'Counter',
       items: [
         { path: '/new-order', label: 'New Order', icon: '➕', permission: 'canCreateOrders', feature: 'new_order' },
-        { path: '/collection', label: 'Collection', icon: '✅', permission: 'canCollect', feature: 'collection' },
       ]
     },
     {
@@ -161,7 +160,7 @@ const Layout = ({ children }) => {
 
   // Mobile bottom tab bar: till-critical destinations first, in fixed order.
   const flatNavItems = filteredGroups.flatMap((g) => g.items);
-  const tabPriority = ['/new-order', '/collection', '/orders', '/dashboard'];
+  const tabPriority = ['/new-order', '/orders', '/dashboard'];
   const tabItems = tabPriority
     .map((p) => flatNavItems.find((it) => it.path === p))
     .filter(Boolean)
@@ -175,6 +174,7 @@ const Layout = ({ children }) => {
         { path: '/admin/branches', label: 'Branches', icon: '🏢', feature: 'admin' },
         { path: '/admin/banking', label: 'Banking', icon: '🏦', feature: 'admin' },
         { path: '/admin/sms-marketing', label: 'SMS Marketing', icon: '📱', feature: 'admin' },
+        { path: '/admin/coupons', label: 'Coupons', icon: '🎟️', feature: 'admin' },
       ]
     });
   }

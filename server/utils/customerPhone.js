@@ -46,6 +46,39 @@ function sanitizeImportPhone(raw) {
   return s;
 }
 
+/**
+ * SQL expression that reduces a phone column to digits only.
+ *
+ * Uses nested replace() instead of PostgreSQL's regexp_replace() so the same
+ * statement runs unchanged on SQLite and PostgreSQL. Every printable ASCII
+ * character that is not a digit is stripped, which matches the JavaScript
+ * `replace(/\D/g, '')` normalisation closely.
+ *
+ * `?` and `$` are excluded on purpose: the query helpers rewrite every `?` into
+ * a positional placeholder (`$1`, `$2`, ...), which would turn these literals
+ * into parameters and break the statement.
+ */
+const UNSAFE_IN_SQL_LITERAL = new Set(['?', '$', '\\']);
+const NON_DIGIT_CHARS = (() => {
+  let chars = '';
+  for (let code = 32; code <= 126; code += 1) {
+    const ch = String.fromCharCode(code);
+    if (ch >= '0' && ch <= '9') continue;
+    if (UNSAFE_IN_SQL_LITERAL.has(ch)) continue;
+    chars += ch;
+  }
+  return chars;
+})();
+
+function digitsOnlySql(column) {
+  let expr = column;
+  for (const ch of NON_DIGIT_CHARS) {
+    const literal = ch === "'" ? "''" : ch;
+    expr = `replace(${expr}, '${literal}', '')`;
+  }
+  return expr;
+}
+
 function resolveInsertId(result) {
   if (!result) return null;
   const id = result.row?.id ?? result.lastID;
@@ -59,6 +92,7 @@ module.exports = {
   generatePlaceholderPhone,
   isPlaceholderPhone,
   normalizePhoneDigits,
+  digitsOnlySql,
   sanitizeImportPhone,
   resolveInsertId,
 };

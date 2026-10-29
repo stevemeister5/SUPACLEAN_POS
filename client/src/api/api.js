@@ -980,6 +980,14 @@ export async function getBankDepositTotal(params = {}) {
   }
 }
 
+// Coupons (Task 4)
+export const validateCoupon = (code, subtotal, branchId) =>
+  api.post('/coupons/validate', { code, subtotal, branch_id: branchId });
+export const getCoupons = () => api.get('/coupons');
+export const getCouponSummary = () => api.get('/coupons/summary');
+export const createCoupon = (data) => api.post('/coupons', data);
+export const updateCoupon = (id, data) => api.put(`/coupons/${id}`, data);
+
 // Loyalty
 export const getCustomerLoyalty = (customerId) => api.get(`/loyalty/customer/${customerId}`);
 export const getLoyaltyTransactions = (customerId, limit = 50) => api.get(`/loyalty/customer/${customerId}/transactions`, { params: { limit } });

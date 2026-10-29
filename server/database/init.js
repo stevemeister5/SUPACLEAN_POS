@@ -39,6 +39,8 @@ function initializeTables() {
     phone TEXT NOT NULL UNIQUE,
     email TEXT,
     address TEXT,
+    tin TEXT,
+    vrn TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
@@ -88,6 +90,9 @@ function initializeTables() {
     archived_at DATETIME,
     archived_by TEXT,
     archive_reason TEXT,
+    coupon_id INTEGER,
+    coupon_code TEXT,
+    discount_amount REAL DEFAULT 0,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
     FOREIGN KEY (service_id) REFERENCES services(id)
   )`);
@@ -118,9 +123,12 @@ function initializeTables() {
   )`);
 
   // Daily Cash Summaries table
+  // NOTE: one summary row per (date, branch). The UNIQUE constraint on `date`
+  // alone was removed in the migration below because it prevented more than one
+  // branch from having a cash summary on the same day.
   db.run(`CREATE TABLE IF NOT EXISTS daily_cash_summaries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    date TEXT UNIQUE NOT NULL,
+    date TEXT NOT NULL,
     opening_balance REAL DEFAULT 0,
     cash_sales REAL DEFAULT 0,
     book_sales REAL DEFAULT 0,
@@ -263,6 +271,24 @@ function initializeTables() {
     service_value REAL DEFAULT 0,
     is_active INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // Coupons table (Task 4 — coupon program, min. order 20,000 TSh)
+  db.run(`CREATE TABLE IF NOT EXISTS coupons (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL UNIQUE,
+    type TEXT NOT NULL DEFAULT 'percent',
+    value REAL NOT NULL DEFAULT 0,
+    min_order_amount REAL NOT NULL DEFAULT 20000,
+    max_uses INTEGER DEFAULT 0,
+    used_count INTEGER NOT NULL DEFAULT 0,
+    starts_at DATETIME,
+    expires_at DATETIME,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    branch_id INTEGER,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
   // Branches table (Multi-branch support)
@@ -484,6 +510,15 @@ function migrateDatabase() {
       if (!columnNames.includes('archive_reason')) {
         migrations.push('ALTER TABLE orders ADD COLUMN archive_reason TEXT');
       }
+      if (!columnNames.includes('coupon_id')) {
+        migrations.push('ALTER TABLE orders ADD COLUMN coupon_id INTEGER');
+      }
+      if (!columnNames.includes('coupon_code')) {
+        migrations.push('ALTER TABLE orders ADD COLUMN coupon_code TEXT');
+      }
+      if (!columnNames.includes('discount_amount')) {
+        migrations.push('ALTER TABLE orders ADD COLUMN discount_amount REAL DEFAULT 0');
+      }
       
       // Check and create loyalty tables if they don't exist
       db.run(`CREATE TABLE IF NOT EXISTS loyalty_points (
@@ -628,6 +663,21 @@ function migrateDatabase() {
               }
             });
           }
+          // Tax identification columns used by the customer forms and billing.
+          if (!customerInfoColumnNames.includes('tin')) {
+            db.run("ALTER TABLE customers ADD COLUMN tin TEXT", (alterErr) => {
+              if (!alterErr) {
+                console.log('OK:  Added tin column to customers');
+              }
+            });
+          }
+          if (!customerInfoColumnNames.includes('vrn')) {
+            db.run("ALTER TABLE customers ADD COLUMN vrn TEXT", (alterErr) => {
+              if (!alterErr) {
+                console.log('OK:  Added vrn column to customers');
+              }
+            });
+          }
         }
       });
 
@@ -737,6 +787,117 @@ function migrateDatabase() {
           }
         }
       });
+
+      // Replace the legacy global UNIQUE(date) constraint on daily_cash_summaries
+      // with a UNIQUE(date, branch_id) constraint so each branch can own one
+      // cash summary per day.
+      //
+      // SQLite implements UNIQUE columns as implicit indexes that cannot be
+      // dropped, so the table has to be rebuilt: copy the rows into a new
+      // table without the UNIQUE(date), swap the names and recreate indexes.
+      db.all(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='daily_cash_summaries'",
+        [],
+        (dcsTableErr, dcsTableRows) => {
+          if (dcsTableErr || !dcsTableRows || !dcsTableRows.length) return;
+          const tableSql = dcsTableRows[0].sql || '';
+          const hasGlobalDateUnique = /\bdate\b[^,]*\bUNIQUE\b/i.test(tableSql);
+          if (!hasGlobalDateUnique) return;
+
+          db.all("PRAGMA table_info(daily_cash_summaries)", [], (infoErr, columns) => {
+            if (infoErr || !columns || !columns.length) return;
+            const colNames = columns.map((c) => c.name);
+            const cols = colNames.map((n) => `"${n}"`).join(', ');
+            const selects = colNames.map((n) => `"${n}"`).join(', ');
+
+            db.run('BEGIN', (beginErr) => {
+              if (beginErr) return;
+              db.run(
+                `CREATE TABLE daily_cash_summaries_new (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  date TEXT NOT NULL,
+                  opening_balance REAL DEFAULT 0,
+                  cash_sales REAL DEFAULT 0,
+                  book_sales REAL DEFAULT 0,
+                  card_sales REAL DEFAULT 0,
+                  mobile_money_sales REAL DEFAULT 0,
+                  credit_sales REAL DEFAULT 0,
+                  bank_deposits REAL DEFAULT 0,
+                  bank_payments REAL DEFAULT 0,
+                  mpesa_received REAL DEFAULT 0,
+                  mpesa_paid REAL DEFAULT 0,
+                  expenses_from_cash REAL DEFAULT 0,
+                  expenses_from_bank REAL DEFAULT 0,
+                  expenses_from_mpesa REAL DEFAULT 0,
+                  cash_in_hand REAL DEFAULT 0,
+                  closing_balance REAL DEFAULT 0,
+                  is_reconciled INTEGER DEFAULT 0,
+                  reconciled_by TEXT,
+                  reconciled_at DATETIME,
+                  notes TEXT,
+                  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                  branch_id INTEGER,
+                  reconciled_closing_balance REAL,
+                  opening_cash_declared REAL,
+                  opening_variance REAL NOT NULL DEFAULT 0,
+                  opening_session_by TEXT,
+                  opening_session_at TIMESTAMP
+                )`,
+                (createErr) => {
+                  if (createErr) {
+                    console.log('Note: could not rebuild daily_cash_summaries:', createErr.message);
+                    db.run('ROLLBACK', () => {});
+                    return;
+                  }
+                  db.run(
+                    `INSERT INTO daily_cash_summaries_new (${cols}) SELECT ${selects} FROM daily_cash_summaries`,
+                    (copyErr) => {
+                      if (copyErr) {
+                        console.log('Note: could not copy daily_cash_summaries rows:', copyErr.message);
+                        db.run('ROLLBACK', () => {});
+                        return;
+                      }
+                      db.run('DROP TABLE daily_cash_summaries', (dropErr) => {
+                        if (dropErr) {
+                          console.log('Note: could not drop daily_cash_summaries:', dropErr.message);
+                          db.run('ROLLBACK', () => {});
+                          return;
+                        }
+                        db.run('ALTER TABLE daily_cash_summaries_new RENAME TO daily_cash_summaries', (renameErr) => {
+                          if (renameErr) {
+                            console.log('Note: could not rename daily_cash_summaries:', renameErr.message);
+                            db.run('ROLLBACK', () => {});
+                            return;
+                          }
+                          db.run(
+                            `CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_cash_summaries_date_branch
+                             ON daily_cash_summaries (date, branch_id)`,
+                            (idxErr) => {
+                              if (idxErr) {
+                                console.log('Note: could not create (date, branch_id) unique index:', idxErr.message);
+                                db.run('ROLLBACK', () => {});
+                                return;
+                              }
+                              db.run('COMMIT', (commitErr) => {
+                                if (commitErr) {
+                                  console.log('Note: daily_cash_summaries rebuild commit failed:', commitErr.message);
+                                } else {
+                                  console.log('OK:  daily_cash_summaries rebuilt — unique on (date, branch_id)');
+                                }
+                              });
+                            }
+                          );
+                        });
+                      });
+                    }
+                  );
+                }
+              );
+            });
+          });
+        }
+      );
 
       // Migrate loyalty_rewards table - add service_value column if missing
       db.all("PRAGMA table_info(loyalty_rewards)", [], (rewardsErr, rewardsColumns) => {

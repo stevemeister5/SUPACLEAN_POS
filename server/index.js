@@ -49,13 +49,21 @@ app.use(cors((req, callback) => {
   if (!origin) return callback(null, { origin: true, credentials: true });
 
   const normalized = normalizeOrigin(origin);
-  const forwardedHost = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0];
-  const forwardedProto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0];
-  const selfOrigin = normalizeOrigin(forwardedHost ? `${forwardedProto}://${forwardedHost}` : '');
+  const originHost = normalized.replace(/^https?:\/\//, '').split('/')[0];
+
+  // Hosts that identify this deployment: the API's own Host header and the host
+  // the request was forwarded from (x-forwarded-host, set by the dev/reverse proxy).
+  const selfHosts = new Set();
+  for (const raw of [req.headers.host, (req.headers['x-forwarded-host'] || '').split(',')[0]]) {
+    const h = String(raw || '').trim().split(':')[0];
+    if (h) selfHosts.add(h);
+  }
+  const originHostname = originHost.split(':')[0];
+  const isSelfOrigin = originHostname && selfHosts.has(originHostname);
 
   // Allow the deployment's own origin (browser sends Origin on same-origin POST/PUT/DELETE)
   // in addition to the explicitly configured CLIENT_URL / RENDER_EXTERNAL_URL values.
-  if (allowedOrigins.includes(normalized) || (selfOrigin && normalized === selfOrigin)) {
+  if (allowedOrigins.includes(normalized) || isSelfOrigin) {
     return callback(null, { origin: true, credentials: true });
   }
 
@@ -104,8 +112,10 @@ const SCHEMA_ENSURE_MODULES = [
   './database/ensureItemsSchema',
   './database/ensurePerformanceIndexes',
   './database/ensureLongevitySchema',
+  './database/ensureCustomerTaxSchema',
   './database/ensureSmsMarketingSchema',
   './database/ensureMonthlyBillingSchema',
+  './database/ensureCouponsSchema',
 ];
 
 const { shouldRunSchemaEnsure } = require('./database/schemaEnsure');
@@ -143,6 +153,7 @@ try {
   app.use('/api/bank-accounts', require('./routes/bankAccounts'));
   app.use('/api/bank-deposits', require('./routes/bankDeposits'));
   app.use('/api/loyalty', require('./routes/loyalty'));
+  app.use('/api/coupons', require('./routes/coupons'));
   app.use('/api/validation', require('./routes/validation'));
   app.use('/api/order-item-photos', require('./routes/orderItemPhotos'));
   app.use('/api/delivery-notes', require('./routes/deliveryNotes'));

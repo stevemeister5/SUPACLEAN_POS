@@ -4,7 +4,7 @@ const db = require('../database/query');
 const { authenticate, requireBranchAccess, requireBranchFeature } = require('../middleware/auth');
 const { requirePermission, requireAnyPermission } = require('../middleware/permissions');
 const { getBranchFilter, getEffectiveBranchId } = require('../utils/branchFilter');
-const { normalizePhoneDigits, isPlaceholderPhone } = require('../utils/customerPhone');
+const { normalizePhoneDigits, isPlaceholderPhone, digitsOnlySql } = require('../utils/customerPhone');
 
 async function phoneNormalizedForCustomer(phone, excludeId = null) {
   const normalized = normalizePhoneDigits(String(phone || '').trim());
@@ -45,7 +45,7 @@ async function findCustomerByPhone(phone) {
      WHERE phone_normalized = ?
         OR TRIM(phone) = ?
         OR phone = ?
-        OR regexp_replace(COALESCE(phone, ''), '[^0-9]', '', 'g') = ?
+        OR ${digitsOnlySql("COALESCE(phone, '')")} = ?
      ORDER BY
        CASE WHEN phone_normalized = ? THEN 0 ELSE 1 END,
        id ASC
@@ -53,6 +53,24 @@ async function findCustomerByPhone(phone) {
     [normalized, trimmed, normalized, digitsOnly, normalized]
   );
   return rows && rows[0] ? rows[0] : null;
+}
+
+// Task 1.1 — Customer visibility rule (documented & enforced):
+// A customer appears in / is accessible from a branch if:
+//   home branch = this branch (primary_branch_id = branchId), OR
+//   they have order activity at this branch (EXISTS orders at branch for this customer).
+// Admin bypasses (handled at route level by checking role).
+async function isCustomerAccessibleFromBranch(customerId, branchId) {
+  if (!branchId) return false;
+  const row = await db.get(
+    `SELECT 1 FROM customers
+      WHERE id = ?
+        AND (primary_branch_id = ?
+             OR EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = customers.id AND o.branch_id = ?))
+      LIMIT 1`,
+    [customerId, branchId, branchId]
+  );
+  return !!row;
 }
 
 async function formatExistingCustomerResponse(existing, extras = {}) {
@@ -84,6 +102,7 @@ router.use(authenticate, requireBranchFeature('customers'));
 
 // Fast typeahead search for New Order / Collection autocomplete (must be before /:id)
 // Searches all branches — customers may collect laundry at any branch.
+// Task 1.5: this branch's customers rank first; each result carries is_other_branch flag.
 router.get('/search', async (req, res) => {
   const q = String(req.query.q || req.query.search || '').trim();
   if (q.length < 2) {
@@ -91,6 +110,7 @@ router.get('/search', async (req, res) => {
   }
 
   const limit = Math.min(parseInt(req.query.limit, 10) || 15, 30);
+  const effectiveBranchId = getEffectiveBranchId(req);
   const digitsOnly = q.replace(/\D/g, '');
   let normalizedPhone = digitsOnly;
   if (digitsOnly.length === 10 && digitsOnly.startsWith('0')) {
@@ -110,13 +130,14 @@ router.get('/search', async (req, res) => {
 
   try {
     const rows = await db.all(
-      `SELECT c.id, c.name, c.phone, c.email, c.primary_branch_id AS branch_id, b.name AS branch_name, b.code AS branch_code
+      `SELECT c.id, c.name, c.phone, c.email, c.primary_branch_id AS branch_id, b.name AS branch_name, b.code AS branch_code,
+              CASE WHEN c.primary_branch_id = ? THEN 0 ELSE 1 END AS is_other_branch
        FROM customers c
        LEFT JOIN branches b ON b.id = c.primary_branch_id
        ${whereClause}
-       ORDER BY c.name ASC
+       ORDER BY is_other_branch ASC, c.name ASC
        LIMIT ?`,
-      [...params, limit]
+      [effectiveBranchId, ...params, limit]
     );
     res.json(rows || []);
   } catch (err) {
@@ -138,7 +159,7 @@ router.get('/', async (req, res) => {
     const whereConditions = [];
     const params = [];
     if (effectiveBranchId != null) {
-      whereConditions.push('(c.primary_branch_id = ? OR (c.primary_branch_id IS NULL AND c.id IN (SELECT DISTINCT customer_id FROM orders WHERE branch_id = ?)))');
+      whereConditions.push('(c.primary_branch_id = ? OR c.id IN (SELECT DISTINCT customer_id FROM orders WHERE branch_id = ?))');
       params.push(effectiveBranchId, effectiveBranchId);
     }
     if (search) {
@@ -150,9 +171,13 @@ router.get('/', async (req, res) => {
       const rows = await db.all(
         `SELECT c.*,
                 c.primary_branch_id AS branch_id,
-                b.name AS branch_name
+                b.name AS branch_name,
+                COALESCE(lp.current_points, 0) AS current_points,
+                COALESCE(lp.lifetime_points, 0) AS lifetime_points,
+                COALESCE(lp.tier, 'Bronze') AS tier
          FROM customers c
          LEFT JOIN branches b ON b.id = c.primary_branch_id
+         LEFT JOIN loyalty_points lp ON c.id = lp.customer_id
          ${whereClause} ORDER BY c.created_at DESC LIMIT ? OFFSET ?`,
         [...params, limit, offset]
       );
@@ -161,6 +186,9 @@ router.get('/', async (req, res) => {
         tags: row.tags || null,
         sms_notifications_enabled: row.sms_notifications_enabled !== undefined ? row.sms_notifications_enabled : 1,
         outstanding_balance: 0,
+        current_points: parseInt(row.current_points || 0),
+        lifetime_points: parseInt(row.lifetime_points || 0),
+        tier: row.tier || 'Bronze',
         branch_id: row.branch_id != null ? row.branch_id : null,
         branch_name: row.branch_name || null
       }));
@@ -181,6 +209,9 @@ router.get('/', async (req, res) => {
     SELECT c.*,
            (SELECT o.branch_id FROM orders o WHERE o.customer_id = c.id ORDER BY o.order_date DESC LIMIT 1) AS branch_id,
            (SELECT b.name FROM orders o JOIN branches b ON o.branch_id = b.id WHERE o.customer_id = c.id ORDER BY o.order_date DESC LIMIT 1) AS branch_name,
+           COALESCE(lp.current_points, 0) AS current_points,
+           COALESCE(lp.lifetime_points, 0) AS lifetime_points,
+           COALESCE(lp.tier, 'Bronze') AS tier,
            COALESCE(SUM(CASE 
              WHEN o.id IS NOT NULL 
              AND o.status != 'collected' 
@@ -191,6 +222,7 @@ router.get('/', async (req, res) => {
              ELSE 0 
            END), 0) as outstanding_balance
     FROM customers c
+    LEFT JOIN loyalty_points lp ON c.id = lp.customer_id
     LEFT JOIN orders o ON c.id = o.customer_id 
       AND o.status != 'collected' 
       AND COALESCE(o.is_voided, FALSE) = FALSE
@@ -201,7 +233,7 @@ router.get('/', async (req, res) => {
 
   const whereConditions = [];
   if (effectiveBranchId != null) {
-    whereConditions.push('(c.primary_branch_id = ? OR (c.primary_branch_id IS NULL AND c.id IN (SELECT DISTINCT customer_id FROM orders WHERE branch_id = ?)))');
+    whereConditions.push('(c.primary_branch_id = ? OR c.id IN (SELECT DISTINCT customer_id FROM orders WHERE branch_id = ?))');
     params.push(effectiveBranchId, effectiveBranchId);
   }
   if (search) {
@@ -223,7 +255,10 @@ router.get('/', async (req, res) => {
       ...row,
       tags: row.tags || null,
       sms_notifications_enabled: row.sms_notifications_enabled !== undefined ? row.sms_notifications_enabled : 1,
-      outstanding_balance: parseFloat(row.outstanding_balance || 0)
+      outstanding_balance: parseFloat(row.outstanding_balance || 0),
+      current_points: parseInt(row.current_points || 0),
+      lifetime_points: parseInt(row.lifetime_points || 0),
+      tier: row.tier || 'Bronze'
     }));
     res.json(formattedRows);
   } catch (err) {
@@ -232,13 +267,22 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get customer by ID
+// Get customer by ID — branch-guarded (Task 1.3)
+// Access allowed when home branch = user's branch OR customer has orders at user's branch; admin bypasses.
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
+  const effectiveBranchId = getEffectiveBranchId(req);
   try {
     const row = await db.get('SELECT * FROM customers WHERE id = ?', [id]);
     if (!row) {
       return res.status(404).json({ error: 'Customer not found' });
+    }
+    // Admin bypasses branch checks
+    if (req.user.role !== 'admin') {
+      const accessible = await isCustomerAccessibleFromBranch(id, effectiveBranchId);
+      if (!accessible) {
+        return res.status(403).json({ error: 'Customer not accessible from your branch.' });
+      }
     }
     res.json(row);
   } catch (err) {
@@ -247,8 +291,10 @@ router.get('/:id', async (req, res) => {
 });
 
 // Quick-add customer for billing (name, phone, TIN, VRN) – canCreateOrders. Find-or-create by phone.
+// Task 1.6: set primary_branch_id to the effective branch like POST / does.
 router.post('/quick-add', requirePermission('canCreateOrders'), async (req, res) => {
   const { name, phone, tin, vrn } = req.body;
+  const branchId = getEffectiveBranchId(req) ?? req.user?.branchId ?? req.branch?.id ?? null;
   if (!name || !phone) {
     return res.status(400).json({ error: 'Name and phone are required' });
   }
@@ -261,8 +307,12 @@ router.post('/quick-add', requirePermission('canCreateOrders'), async (req, res)
     }
     const normalizedPhone = await phoneNormalizedForCustomer(phone);
     const r = await db.run(
-      'INSERT INTO customers (name, phone, phone_normalized, tin, vrn) VALUES (?, ?, ?, ?, ?) RETURNING id',
-      [name.trim(), phone.trim(), normalizedPhone, (tin || '').trim() || null, (vrn || '').trim() || null]
+      branchId
+        ? 'INSERT INTO customers (name, phone, phone_normalized, tin, vrn, primary_branch_id) VALUES (?, ?, ?, ?, ?, ?) RETURNING id'
+        : 'INSERT INTO customers (name, phone, phone_normalized, tin, vrn) VALUES (?, ?, ?, ?, ?) RETURNING id',
+      branchId
+        ? [name.trim(), phone.trim(), normalizedPhone, (tin || '').trim() || null, (vrn || '').trim() || null, branchId]
+        : [name.trim(), phone.trim(), normalizedPhone, (tin || '').trim() || null, (vrn || '').trim() || null]
     );
     const id = r?.row?.id ?? r?.lastID;
     const c = await db.get('SELECT id, name, phone, tin, vrn FROM customers WHERE id = ?', [id]);
@@ -322,14 +372,26 @@ router.post('/', requireBranchAccess(), requireAnyPermission('canManageCustomers
 });
 
 // Update customer (managers and admins only)
+// Branch-guarded (Task 1.4): editing allowed when home branch = user's branch OR
+// customer has orders at user's branch; admin bypasses. Cross-branch edits of a
+// customer with no reachability are rejected to prevent data bleed.
 router.put('/:id', requireBranchAccess(), requirePermission('canManageCustomers'), async (req, res) => {
   const { id } = req.params;
   const { name, phone, email, address, tags, sms_notifications_enabled } = req.body;
+  const effectiveBranchId = getEffectiveBranchId(req);
 
   // SMS deactivation is an admin-only capability.
   // This prevents branch managers from disabling customer SMS notifications.
   if (sms_notifications_enabled !== undefined && req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'Only admins can change SMS notification settings for customers.' });
+  }
+
+  // Admin bypasses branch checks; others must reach the customer from their branch
+  if (req.user.role !== 'admin') {
+    const accessible = await isCustomerAccessibleFromBranch(id, effectiveBranchId);
+    if (!accessible) {
+      return res.status(403).json({ error: 'Customer not accessible from your branch.' });
+    }
   }
 
   // Convert tags array to comma-separated string if it's an array
@@ -467,6 +529,7 @@ router.post('/upload-excel', upload.single('file'), async (req, res) => {
     let imported = 0;
     let skipped = 0;
     const errors = [];
+    const branchId = getEffectiveBranchId(req);
 
     // Process each row sequentially
     for (let index = 0; index < data.length; index++) {
@@ -490,8 +553,12 @@ router.post('/upload-excel', upload.single('file'), async (req, res) => {
           continue;
         }
         await db.run(
-          'INSERT INTO customers (name, phone, email, address) VALUES (?, ?, ?, ?) RETURNING id',
-          [name, phone, email || null, address || null]
+          branchId
+            ? 'INSERT INTO customers (name, phone, email, address, primary_branch_id) VALUES (?, ?, ?, ?, ?) RETURNING id'
+            : 'INSERT INTO customers (name, phone, email, address) VALUES (?, ?, ?, ?) RETURNING id',
+          branchId
+            ? [name, phone, email || null, address || null, branchId]
+            : [name, phone, email || null, address || null]
         );
         imported++;
       } catch (insertErr) {
@@ -530,10 +597,19 @@ router.post('/upload-excel', upload.single('file'), async (req, res) => {
   }
 });
 
-// Get customer orders
+// Get customer orders — branch-guarded (Task 1.3)
+// Access allowed when home branch = user's branch OR customer has orders at user's branch; admin bypasses.
 router.get('/:id/orders', async (req, res) => {
   const { id } = req.params;
+  const effectiveBranchId = getEffectiveBranchId(req);
   try {
+    // Admin bypasses branch checks
+    if (req.user.role !== 'admin') {
+      const accessible = await isCustomerAccessibleFromBranch(id, effectiveBranchId);
+      if (!accessible) {
+        return res.status(403).json({ error: 'Customer not accessible from your branch.' });
+      }
+    }
     const rows = await db.all(
       `SELECT o.*, s.name as service_name, c.name as customer_name, c.phone as customer_phone,
               COALESCE(tx.total_received, 0) as receipt_total_received,

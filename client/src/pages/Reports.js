@@ -11,7 +11,8 @@ import {
   setReportsMonthlyTarget,
   unreconcileDailyCash,
   getBankDeposits,
-  getBranches
+  getBranches,
+  getCouponSummary
 } from '../api/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -120,6 +121,7 @@ const Reports = () => {
   const csvBranchLabel = branch?.name || (branch?.id != null ? `Branch ID ${branch.id}` : null);
   const [summary, setSummary] = useState(null);
   const [financialReport, setFinancialReport] = useState(null);
+  const [couponSummary, setCouponSummary] = useState(null);
   const [profitReport, setProfitReport] = useState([]);
   const [salesReport, setSalesReport] = useState([]);
   const [serviceReport, setServiceReport] = useState([]);
@@ -244,6 +246,7 @@ const Reports = () => {
       setSalesReport(salesRes.data || []);
       setBusinessHealth(healthRes.data || null);
       setBankDeposits(Array.isArray(depRes.data) ? depRes.data : []);
+      getCouponSummary().then((r) => setCouponSummary(r.data || null)).catch(() => setCouponSummary(null));
       setLoadedTabs((prev) => ({ ...prev, overview: true }));
       const synced = [summaryRes, financialRes].find((r) => r.fromCache && r.syncedAt);
       if (synced) setLastSyncedAt(synced.syncedAt); else setLastSyncedAt(null);
@@ -641,6 +644,34 @@ const Reports = () => {
                   </div>
                 )}
               </div>
+            </section>
+          )}
+
+          {couponSummary && (
+            <section className="reports-panel reports-panel--coupon-summary" aria-label="Coupon usage summary">
+              <div className="reports-panel-heading">
+                <h2 className="reports-panel-heading">🎟️ Coupon usage</h2>
+                <p className="reports-panel-lead">Coupons applied across the selected period.</p>
+              </div>
+              <div className="reports-kpi-grid reports-kpi-grid--sm">
+                <div className="reports-kpi">
+                  <span className="reports-kpi-label">Orders with coupon</span>
+                  <span className="reports-kpi-value">{Number(couponSummary.summary?.orders_with_coupon ?? 0).toLocaleString()}</span>
+                </div>
+                <div className="reports-kpi reports-kpi--discount">
+                  <span className="reports-kpi-label">Discount granted</span>
+                  <span className="reports-kpi-value">TSh {Number(couponSummary.summary?.total_discount ?? 0).toLocaleString()}</span>
+                </div>
+              </div>
+              {couponSummary.top_coupons?.length > 0 && (
+                <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  {couponSummary.top_coupons.map((c) => (
+                    <li key={c.code} style={{ marginBottom: '4px' }}>
+                      {c.code} · {c.type === 'percent' ? `${Number(c.value)}%` : `TSh ${Number(c.value).toLocaleString()}`} · applied {Number(c.times_applied ?? 0).toLocaleString()}× · TSh {Number(c.discount_given ?? 0).toLocaleString()}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           )}
 

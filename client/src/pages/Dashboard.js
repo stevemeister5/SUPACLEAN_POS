@@ -243,7 +243,7 @@ const Dashboard = () => {
           <button
             type="button"
             className="dk-btn dk-btn--secondary dk-btn--md"
-            onClick={() => navigate('/collection')}
+            onClick={() => navigate('/orders')}
           >
             Go to Collection
           </button>
@@ -265,7 +265,7 @@ const Dashboard = () => {
         if (isAdmin && inboxOpenCount > 0)
           tasks.push({ key: 'inbox', label: 'Admin alerts', value: inboxOpenCount, path: '/dashboard', accent: 'danger' });
         if (overdueCount > 0)
-          tasks.push({ key: 'overdue', label: 'Ready overdue', value: overdueCount, path: '/collection', accent: 'danger' });
+          tasks.push({ key: 'overdue', label: 'Ready overdue', value: overdueCount, path: '/orders', accent: 'danger' });
         if (openBalancesTotal > 0)
           tasks.push({ key: 'balances', label: 'Open balances', value: `TSh ${openBalancesTotal.toLocaleString()}`, path: '/orders', accent: 'warning' });
         if (pendingCount > 0)
@@ -404,7 +404,7 @@ const Dashboard = () => {
                 </span>
               )}
             </div>
-            <button className="btn-link" onClick={() => navigate('/collection')}>
+            <button className="btn-link" onClick={() => navigate('/orders')}>
               View in Collection →
             </button>
           </div>
@@ -441,7 +441,7 @@ const Dashboard = () => {
                     >
                       <div className="dashboard-list-card-header">
                         <Link
-                          to={`/collection?receipt=${encodeURIComponent(receipt.receipt_number)}`}
+                          to={`/orders?receipt=${encodeURIComponent(receipt.receipt_number)}`}
                           className={`receipt-badge receipt-link dk-receipt-chip ${isOverdue ? 'dk-receipt-chip--overdue overdue-badge' : 'dk-receipt-chip--outline'}`}
                         >
                           {formatReceiptForDisplay(receipt.receipt_number, receipt.all_items || [])}
@@ -456,7 +456,7 @@ const Dashboard = () => {
                         <p>{balance > 0 ? <span className="balance-due">Balance TSh {balance.toLocaleString()}</span> : 'Paid'}</p>
                       </div>
                       <div className="dashboard-list-card-actions">
-                        <button type="button" className="btn-small btn-success" onClick={() => navigate(`/collection?receipt=${receipt.receipt_number}`)}>
+                        <button type="button" className="btn-small btn-success" onClick={() => navigate(`/orders?receipt=${receipt.receipt_number}`)}>
                           Collect
                         </button>
                       </div>
@@ -496,7 +496,7 @@ const Dashboard = () => {
                         <tr key={receipt.receipt_number} className={isOverdue ? 'row-overdue dk-table-row--accent-danger' : 'dk-table-row--accent-success'}>
                           <td>
                             <Link
-                              to={`/collection?receipt=${encodeURIComponent(receipt.receipt_number)}`}
+                              to={`/orders?receipt=${encodeURIComponent(receipt.receipt_number)}`}
                               className={`receipt-badge receipt-link dk-receipt-chip ${isOverdue ? 'dk-receipt-chip--overdue overdue-badge' : 'dk-receipt-chip--outline'}`}
                               title="Open in Collection"
                             >
@@ -517,7 +517,7 @@ const Dashboard = () => {
                             <button
                               type="button"
                               className="btn-small btn-success btn-table-action"
-                              onClick={() => navigate(`/collection?receipt=${receipt.receipt_number}`)}
+                              onClick={() => navigate(`/orders?receipt=${receipt.receipt_number}`)}
                             >
                               Collect
                             </button>

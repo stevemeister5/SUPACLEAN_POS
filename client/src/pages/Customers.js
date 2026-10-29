@@ -6,6 +6,9 @@ import {
   uploadCustomersExcel,
   checkServerConnection,
   sendBalanceReminder,
+  getCustomerLoyalty,
+  getLoyaltyTransactions,
+  redeemLoyaltyPoints,
 } from '../api/api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,6 +26,9 @@ const CUSTOMERS_EXPORT_COLUMNS = [
   { key: 'phone', label: 'Phone' },
   { key: 'email', label: 'Email' },
   { key: 'address', label: 'Address' },
+  { key: 'tier', label: 'Tier' },
+  { key: 'current_points', label: 'Current Points' },
+  { key: 'lifetime_points', label: 'Lifetime Points' },
   { key: 'outstanding_balance', label: 'Outstanding Balance' },
   { key: 'tags', label: 'Tags' },
 ];
@@ -55,6 +61,13 @@ const Customers = () => {
   const [exporting, setExporting] = useState(false);
   const [showExportPopup, setShowExportPopup] = useState(false);
   const searchInputRef = useRef(null);
+  // Loyalty (Task 3.2/3.3)
+  const [loyaltyData, setLoyaltyData] = useState({}); // customerId -> {current_points, lifetime_points, tier, ...}
+  const [loyaltyTransactions, setLoyaltyTransactions] = useState([]); // for the open customer
+  const [loyaltyCustomerId, setLoyaltyCustomerId] = useState(null); // customer whose detail is open
+  const [showRedeemModal, setShowRedeemModal] = useState(false);
+  const [redeemPoints, setRedeemPoints] = useState('');
+  const [redeeming, setRedeeming] = useState(null);
 
   const CUSTOMERS_PAGE_SIZE = 50;
 
@@ -161,6 +174,56 @@ const Customers = () => {
       loadCustomers(false);
     } catch (error) {
       showToast('Error updating customer: ' + (error.response?.data?.error || error.message), 'error');
+    }
+  };
+
+  // Task 3.2 — Fetch loyalty summary + recent transactions for a customer
+  const fetchCustomerLoyalty = async (customerId) => {
+    try {
+      const [infoRes, txRes] = await Promise.all([
+        getCustomerLoyalty(customerId),
+        getLoyaltyTransactions(customerId, 20),
+      ]);
+      setLoyaltyData((prev) => ({ ...prev, [customerId]: infoRes.data }));
+      setLoyaltyTransactions(txRes.data || []);
+      setLoyaltyCustomerId(customerId);
+    } catch (error) {
+      console.error('Error fetching loyalty:', error);
+    }
+  };
+
+  // Task 3.3 — Redeem points
+  const openRedeem = (customerId, availablePoints) => {
+    setLoyaltyCustomerId(customerId);
+    setRedeemPoints('');
+    setShowRedeemModal(true);
+  };
+
+  const handleRedeemSubmit = async (e) => {
+    e.preventDefault();
+    if (!loyaltyCustomerId) return;
+    const points = parseInt(redeemPoints, 10);
+    if (!points || points <= 0) {
+      showToast('Enter a valid points amount', 'error');
+      return;
+    }
+    const available = loyaltyData[loyaltyCustomerId]?.current_points ?? 0;
+    if (points > available) {
+      showToast(`Not enough points (available: ${available})`, 'error');
+      return;
+    }
+    setRedeeming(loyaltyCustomerId);
+    try {
+      await redeemLoyaltyPoints(loyaltyCustomerId, points);
+      showToast(`${points} points redeemed successfully`, 'success');
+      setShowRedeemModal(false);
+      setRedeemPoints('');
+      await fetchCustomerLoyalty(loyaltyCustomerId);
+      loadCustomers(false);
+    } catch (error) {
+      showToast('Error redeeming points: ' + (error.response?.data?.error || error.message), 'error');
+    } finally {
+      setRedeeming(null);
     }
   };
 
@@ -473,6 +536,8 @@ const Customers = () => {
               <th>Phone</th>
               <th>Email</th>
               <th>Address</th>
+              <th>Home Branch</th>
+              <th>Loyalty</th>
               <th>Outstanding Balance</th>
               <th>Tags</th>
               <th>Joined</th>
@@ -570,6 +635,19 @@ const Customers = () => {
                       <td>{customer.email || '-'}</td>
                       <td>{customer.address || '-'}</td>
                       <td>
+                        {customer.branch_name ? (
+                          <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>{customer.branch_name}</span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>-</span>
+                        )}
+                      </td>
+                      <td style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px' }}>
+                        <span className={`badge-tier-${(customer.tier || 'bronze').toLowerCase()}`} style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '10px', textTransform: 'capitalize' }}>
+                          {customer.tier || 'Bronze'}
+                        </span>
+                        <span style={{ color: 'var(--text-muted)' }}>{customer.current_points || 0} pts</span>
+                      </td>
+                      <td>
                         {(() => {
                           const balance = customer.outstanding_balance || 0;
                           return (
@@ -662,6 +740,26 @@ const Customers = () => {
                               ✏️ Edit
                             </button>
                           )}
+                          {hasPermission('canManageCustomers') && (
+                            <button
+                              className="btn-small btn-info"
+                              onClick={() => fetchCustomerLoyalty(customer.id)}
+                              disabled={redeeming === customer.id}
+                              title="View loyalty points, tier & transactions"
+                            >
+                              🏅 Loyalty
+                            </button>
+                          )}
+                          {(customer.current_points || 0) >= 10 && hasPermission('canManageCustomers') && (
+                            <button
+                              className="btn-small btn-success"
+                              onClick={() => openRedeem(customer.id, customer.current_points)}
+                              disabled={redeeming === customer.id}
+                              title="Redeem points for discount"
+                            >
+                              🎟️ Redeem
+                            </button>
+                          )}
                           {(customer.outstanding_balance || 0) > 0 && hasPermission('canManageCustomers') && (
                             <button
                               className="btn-small btn-warning"
@@ -693,6 +791,131 @@ const Customers = () => {
           >
             {loadingMore ? 'Loading…' : 'Load more customers'}
           </button>
+        </div>
+      )}
+      {/* Task 3.2 — Loyalty detail panel */}
+      {loyaltyCustomerId && loyaltyData[loyaltyCustomerId] && (
+        <div className="loyalty-detail-panel" style={{ marginTop: '16px', padding: '16px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <h3 style={{ margin: 0, fontSize: '18px' }}>🏅 Loyalty Details</h3>
+            <button
+              className="btn-small btn-secondary"
+              onClick={() => setLoyaltyCustomerId(null)}
+              style={{ marginLeft: 'auto' }}
+            >
+              ✕ Close
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <div style={{ flex: 1, minWidth: '150px', padding: '12px', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Current Points</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{loyaltyData[loyaltyCustomerId].current_points}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: '150px', padding: '12px', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Lifetime Points</div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{loyaltyData[loyaltyCustomerId].lifetime_points}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: '150px', padding: '12px', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Tier</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className={`badge-tier-${(loyaltyData[loyaltyCustomerId].tier || 'bronze').toLowerCase()}`} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', textTransform: 'capitalize' }}>
+                  {loyaltyData[loyaltyCustomerId].tier || 'bronze'}
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{loyaltyData[loyaltyCustomerId].points_to_next_tier != null && loyaltyData[loyaltyCustomerId].points_to_next_tier > 0 ? `${loyaltyData[loyaltyCustomerId].points_to_next_tier} pts to next tier` : 'Top tier'}</span>
+              </div>
+            </div>
+          </div>
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>Recent Transactions</div>
+            {(loyaltyTransactions.length > 0 ? (
+              <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '6px 8px' }}>Date</th>
+                    <th style={{ padding: '6px 8px' }}>Type</th>
+                    <th style={{ padding: '6px 8px' }}>Points</th>
+                    <th style={{ padding: '6px 8px' }}>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loyaltyTransactions.map((tx) => (
+                    <tr key={tx.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '6px 8px' }}>{tx.created_at ? new Date(tx.created_at).toLocaleDateString() : '-'}</td>
+                      <td style={{ padding: '6px 8px' }}>{tx.transaction_type}</td>
+                      <td style={{ padding: '6px 8px', color: tx.points > 0 ? 'var(--success-color)' : 'var(--danger-color)' }}>{tx.points > 0 ? '+' : ''}{tx.points}</td>
+                      <td style={{ padding: '6px 8px' }}>{tx.description || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)', padding: '8px 0' }}>No loyalty transactions yet.</div>
+            ))}
+          </div>
+          <button
+            className="btn-small btn-success"
+            onClick={() => openRedeem(loyaltyCustomerId, loyaltyData[loyaltyCustomerId].current_points)}
+            disabled={(loyaltyData[loyaltyCustomerId].current_points || 0) < 10 || redeeming === loyaltyCustomerId}
+          >
+            {redeeming === loyaltyCustomerId ? '⏳ Redeeming…' : '🎟️ Redeem Points'}
+          </button>
+        </div>
+      )}
+      {/* Task 3.3 — Redeem points modal */}
+      {showRedeemModal && loyaltyCustomerId && (
+        <div className="modal-overlay" onClick={() => setShowRedeemModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>🎟️ Redeem Points</h2>
+              <button className="modal-close" onClick={() => setShowRedeemModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleRedeemSubmit}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Available Points</label>
+                  <input
+                    type="number"
+                    readOnly
+                    value={loyaltyData[loyaltyCustomerId]?.current_points ?? 0}
+                    className="edit-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Points to Redeem *</label>
+                  <input
+                    type="number"
+                    value={redeemPoints}
+                    onChange={(e) => setRedeemPoints(e.target.value)}
+                    min="10"
+                    step="10"
+                    required
+                    autoFocus
+                    className="edit-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Discount Value</label>
+                  <input
+                    type="number"
+                    readOnly
+                    value={Math.floor(parseInt(redeemPoints || '0', 10) / 10) * 10000}
+                    className="edit-input"
+                  />
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    10 points = TSh 10,000 discount (multiples of 10)
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setShowRedeemModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={redeeming === loyaltyCustomerId}>
+                  {redeeming === loyaltyCustomerId ? '⏳ Redeeming…' : 'Redeem'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
       </>

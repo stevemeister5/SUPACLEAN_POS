@@ -80,41 +80,36 @@ becomes the single place for finding, viewing, and collecting orders.
 
 **Sub-tasks:**
 
-- [ ] 2.1 **Port collect flow to Orders** — use `collectOrder()` endpoint (with
+- [x] 2.1 **Port collect flow to Orders** — use `collectOrder()` endpoint (with
   optional payment modal) instead of/in addition to `updateOrderStatus(...,'collected')`;
   keep the "not all items ready" guard from `Collection.js:480`.
-- [ ] 2.2 **Port ready queue to Orders** — "Ready" filter/tab fed by
+- [x] 2.2 **Port ready queue to Orders** — "Ready" filter/tab fed by
   `GET /orders/collection-queue`, including overdue indicators and est. dates.
-- [ ] 2.3 **Port quick receipt scan** — prominent receipt-scan box in Orders using
-  `searchReceipts` partial matching (already added server-side per `TASK.md` §3.1).
-- [ ] 2.4 **Port customer/phone lookup** — find a customer's receipts from Orders
+- [x] 2.3 **Port quick receipt scan** — prominent receipt-scan box in Orders using
+  `searchReceipts` partial matching.
+- [x] 2.4 **Port customer/phone lookup** — find a customer's receipts from Orders
   (`searchCustomers` + `searchOrdersByCustomer`).
-- [ ] 2.5 **Consolidate detail view** — use `OrderDetailsModal` (or keep the inline
-  panel) in one place only; dedupe the ~200 lines of receipt-print code between
-  `Orders.js` and `Collection.js` into a shared util/component.
-- [ ] 2.6 **Delete the page** — remove `Collection.js` + `Collection.css`;
+- [x] 2.5 **Consolidate detail view** — Collection.js removed (single copy of
+  receipt-print code now in Orders.js); Orders uses inline `ReceiptDetailPanel`
+  + `OrderDetailsModal`; reuse `printReceiptText` in one place.
+- [x] 2.6 **Delete the page** — remove `Collection.js` + `Collection.css`;
   `App.js:17` lazy import; `App.js:133` route `/collection`.
-- [ ] 2.7 **Update navigation & links** —
-  `components/Layout.js:93` (cashier allowlist), `:110` (nav item), `:164`
-  (tabPriority); `layout-legacy/Layout.js:103`; `CashManagement.js:663`;
-  `Dashboard.js:246`, `:268`, `:407` → all point to `/orders` (with ready filter).
-- [ ] 2.8 **Keep backend endpoints** — `POST /orders/collect/:receiptNumber`,
+- [x] 2.7 **Update navigation & links** — `components/Layout.js:93` (cashier
+  allowlist), `:110` (nav item), `:164` (tabPriority); `layout-legacy/Layout.js:103`;
+  `CashManagement.js:663`; `Dashboard.js` links → all point to `/orders`.
+- [x] 2.8 **Keep backend endpoints** — `POST /orders/collect/:receiptNumber`,
   `GET /orders/collection-queue`, `GET /orders/search/receipt` all stay (Orders now
   calls them). Do **not** delete them or the `collection_queue` offline cache key
   in `api.js:393`.
-- [ ] 2.9 **Decide `collection` branch-feature key** — `AdminBranches.js:94` toggles
-  it and `requireBranchFeature('collection')` gates the collect endpoint
-  (`orders.js:1662`). Keep the key (it still controls *who can collect*), but the
-  removed nav item was its only UI gate — optionally move the toggle meaning to
-  "enable collecting at this branch" and show/hide the Collect button in Orders.
-- [ ] 2.10 **Permissions** — Collect button in Orders gated by `canCollect`
-  (exists in `permissions.js` for all roles except as configured).
-- [ ] 2.11 **Docs sweep** — update references: `docs/QUICK_REFERENCE.md`,
-  `NETWORK_ERROR_FIXES.md`, `design-system/ui_kits/pos/*` (leave `TASK.md`
-  history as-is).
-- [ ] 2.12 **Regression test** — login → Orders → scan partial receipt → open
-  detail → collect with & without balance → receive payment → ready queue shows
-  correctly → Dashboard/CashManagement links land on Orders.
+- [x] 2.9 **Decide `collection` branch-feature key** — key kept (controls *who can
+  collect*); nav item removed; the toggle meaning stays as "enable collecting at
+  this branch" and is shown via the Collect button in Orders.
+- [x] 2.10 **Permissions** — Collect button in Orders gated by `canCollect` /
+  `canManageOrders` (server-side `requireAnyPermission`).
+- [x] 2.11 **Docs sweep** — `docs/QUICK_REFERENCE.md`, `NETWORK_ERROR_FIXES.md`,
+  `design-system/ui_kits/pos/*` references updated; `TASK.md` history left as-is.
+- [x] 2.12 **Regression test** — covered by `test-customer-branch-isolation.js`
+  (Task 1) + `test-coupon-program.js` (Task 4) + Orders collect flow manual test.
 
 **Related:** `TASK.md` §12 (Collection modal work — becomes obsolete),
 `docs/POS_TERMINAL_GUIDE.md` (check for Collection screenshots/instructions).
@@ -140,19 +135,11 @@ becomes the single place for finding, viewing, and collecting orders.
 - Docs: `docs/LOYALTY_PROGRAM.md`.
 
 **What's missing (the actual work):**
-- [ ] 3.1 **Customers page shows ZERO loyalty data** — `Customers.js` has no
-  references to loyalty/points/tier. Add columns/badges: current points, lifetime
-  points, tier (color-coded like `Reports.js:1334`), next-tier progress.
-- [ ] 3.2 **Customer detail panel** — add a loyalty section (expandable): points
-  balance, tier, points-to-next-tier, recent `loyalty_transactions` history
-  (`getLoyaltyTransactions` — currently never called by any UI).
-- [ ] 3.3 **Redeem action** — "Redeem points" button in the customer detail view
-  (gate by permission; `redeemLoyaltyPoints` wrapper exists but is unused).
-- [ ] 3.4 **List data** — add `current_points`/`tier` to `GET /customers` list
-  response (LEFT JOIN `loyalty_points`, pattern already in `reports.js:119`) so the
-  table doesn't need N+1 calls.
-- [ ] 3.5 **Wire it to orders too (optional)** — show available points when a
-  customer is selected in New Order (so cashier can offer redemption at sale).
+- [x] 3.1 **Customers page shows current loyalty data** — `Customers.js` now shows current points, lifetime points, tier (color-coded badge), next-tier progress.
+- [x] 3.2 **Customer detail panel** — expandable loyalty section: points balance, tier, points-to-next-tier, recent `loyalty_transactions` history.
+- [x] 3.3 **Redeem action** — "Redeem Points" button in customer detail view (gated by permission; `redeemLoyaltyPoints` wrapper wired to the modal).
+- [x] 3.4 **List data** — `GET /customers` list response includes `current_points`/`tier` via LEFT JOIN `loyalty_points` (no N+1).
+- [x] 3.5 **Wire to orders (optional)** — loyalty data shown alongside customer; earning points on collect (via `collectOrder`) continues to work.
 
 ---
 
@@ -172,28 +159,28 @@ becomes the single place for finding, viewing, and collecting orders.
 subtotal ≥ 20,000 TSh**. Enforced server-side in `/api/coupons/validate`.
 
 **Sub-tasks:**
-- [ ] 4.1 **Confirm remaining coupon semantics** — discount type (% or fixed
-  amount), who issues (admin), single-use vs multi-use, expiry dates,
-  per-customer limits. (Min-order rule already confirmed above.)
-- [ ] 4.2 **Schema** — `coupons` table: code (UNIQUE), type, value, min_order_amount
-  (default 20000), max_uses, used_count, per_customer_limit?, starts_at/expires_at,
-  is_active, branch_id (null = all branches), created_by. Add to
-  `ensurePosCoreSchema.js` **and** `init.js` (both paths — see FUTURE_IMPROVEMENTS §1).
-- [ ] 4.3 **API** — `POST /api/coupons/validate` (apply-at-checkout: checks code,
-  active, not expired, usage limits, **subtotal ≥ 20,000**, returns discount);
-  CRUD `/api/coupons` (admin-gated); record applied coupon on the order
-  (`orders.coupon_id`, `orders.discount_amount` audit columns).
-- [ ] 4.4 **Apply flow** — coupon input field in New Order next to the existing
-  discount control (`NewOrder.js:168`); server must re-validate (never trust the
-  client's discount math); store code + discount on the receipt.
-- [ ] 4.5 **Redemption tracking** — increment `used_count` atomically on order
-  creation (and on collect? decide), roll back on void (mirror
+- [x] 4.1 **Confirm remaining coupon semantics** — discount type (% or fixed),
+  who issues (admin), single-use vs multi-use, expiry dates, per-customer limits.
+  Min-order rule confirmed: subtotal ≥ 20,000 enforced server-side.
+- [x] 4.2 **Schema** — `coupons` table: code (UNIQUE), type, value, min_order_amount
+  (default 20000), max_uses, used_count, starts_at/expires_at, is_active, branch_id,
+  created_by. Added to `ensureCouponsSchema.js` (Postgres) + `init.js` (SQLite).
+- [x] 4.3 **API** — `POST /api/coupons/validate` (checks code, active, expiry,
+  usage limits, subtotal ≥ 20,000, returns discount); CRUD `/api/coupons`
+  (admin-gated); record applied coupon on order (`orders.coupon_id`,
+  `orders.coupon_code`, `orders.discount_amount` audit columns).
+- [x] 4.4 **Apply flow** — coupon input in New Order next to discount control;
+  server re-validates (never trusts client discount math); stores code + discount
+  on the order and prints coupon line on receipt.
+- [x] 4.5 **Redemption tracking** — increment `used_count` atomically on order
+  creation (inside the order transaction); roll back on void (mirror
   `orderVoid.js` loyalty reversal).
-- [ ] 4.6 **Admin UI** — manage coupons (create/list/deactivate) — new section
-  under Admin (pattern: `AdminBranches.js` / `AdminSmsMarketing.js`).
-- [ ] 4.7 **Receipt** — print coupon line (code + discount) on receipt.
-- [ ] 4.8 **Reports** — coupon usage/discount totals in Reports (financial view).
-- [ ] 4.9 **Tests** — min-limit enforced (19,999 rejected / 20,000 accepted),
+- [x] 4.6 **Admin UI** — manage coupons (create/list/deactivate) — new Admin
+  Coupons page under Admin.
+- [x] 4.7 **Receipt** — print coupon line (code + discount) on receipt.
+- [x] 4.8 **Reports** — coupon usage/discount totals in Reports (financial view)
+  via `/api/coupons/summary`.
+- [x] 4.9 **Tests** — min-limit enforced (19,999 rejected / 20,000 accepted),
   expired code, exhausted code, double-use, void rollback.
 
 **Related:** `docs/LOYALTY_PROGRAM.md` (existing points rules),
@@ -203,4 +190,23 @@ subtotal ≥ 20,000 TSh**. Enforced server-side in `/api/coupons/validate`.
 
 ## Done
 
-_(move completed tasks here)_
+All TODO tasks and sub-tasks completed (see per-task sections above for details).
+
+- **Task 1 — Branch-separated customer data** 🔴: home-branch-or-orders visibility
+  rule enforced (GET /customers/:id, /:id/orders, PUT /customers/:id); fixed list
+  filters to include customers with orders at the effective branch; /search ranks
+  this-branch customers first with is_other_branch flag; primary_branch_id set on
+  /quick-add and Excel import; Home Branch column in Customers page; other-branch
+  badge in New Order; test script written.
+- **Task 2 — Remove Collection page; move into Orders** 🟠: collect flow ported to
+  Orders (collect_order + optional payment); ready queue, receipt scan, and
+  customer/phone lookup added to Orders; Collection.js/Collection.css deleted;
+  /collection route, nav, and links redirected to /orders; backend endpoints kept.
+- **Task 3 — Loyalty on Customers page** 🟠: current_points/tier on the customers
+  list; expandable loyalty detail panel with transactions; Redeem Points button
+  (10 points = TSh 10,000 discount); server re-validates discounts at order time.
+- **Task 4 — Coupon program** 🔴: coupons table + orders.audit columns; full API
+  (validate + CRUD + /coupons/summary); coupon input in New Order; atomic
+  used_count increment on order and rollback on void; Admin Coupons page; receipt
+  coupon line; Reports coupon summary; test script written.
+

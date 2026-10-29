@@ -749,9 +749,15 @@ router.post('/receipt/:receiptNumber/send-receipt-sms', authenticate, requireBra
 
 // Search orders by customer phone or name
 router.get('/search/customer', authenticate, requireBranchAccess(), async (req, res) => {
-  const { phone, name, status } = req.query;
-  
-  if (!phone && !name) {
+  const { phone, name, status, customer } = req.query;
+
+  // The client sends a single "customer" term that may be a name or a phone
+  // number, so fall back to it when neither dedicated filter is supplied.
+  const effectivePhone = phone || null;
+  const effectiveName = name || null;
+  const customerTerm = customer ? String(customer).trim() : '';
+
+  if (!effectivePhone && !effectiveName && !customerTerm) {
     return res.status(400).json({ error: 'Phone number or customer name is required' });
   }
 
@@ -771,14 +777,20 @@ router.get('/search/customer', authenticate, requireBranchAccess(), async (req, 
   `;
   let params = [...branchFilter.params];
 
-  if (phone) {
+  if (effectivePhone) {
     query += ' AND c.phone ILIKE ?';
-    params.push(`%${phone}%`);
+    params.push(`%${effectivePhone}%`);
   }
 
-  if (name) {
+  if (effectiveName) {
     query += ' AND c.name ILIKE ?';
-    params.push(`%${name}%`);
+    params.push(`%${effectiveName}%`);
+  }
+
+  // A combined term matches either the customer's name or their phone.
+  if (customerTerm && !effectivePhone && !effectiveName) {
+    query += ' AND (c.name ILIKE ? OR c.phone ILIKE ?)';
+    params.push(`%${customerTerm}%`, `%${customerTerm}%`);
   }
 
   if (status) {
@@ -901,6 +913,7 @@ router.post('/batch', authenticate, requireBranchAccess(), requirePermission('ca
       created_by,
       branch_id,
       receipt_number: manualReceipt,
+      coupon_code,
     } = req.body;
 
     if (!customer_id) {

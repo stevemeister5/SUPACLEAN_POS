@@ -449,6 +449,18 @@
   font-weight: 500;
 }
 
+.other-branch-badge {
+  display: inline-block;
+  margin-top: 2px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 10px;
+}
+
 .selected-customer-compact {
   background: var(--primary-light);
   padding: 12px;

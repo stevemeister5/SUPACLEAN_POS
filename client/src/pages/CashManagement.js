@@ -660,7 +660,7 @@ const CashManagement = () => {
                 Orders
               </button>
               {' or '}
-              <button type="button" className="btn-link" onClick={() => navigate('/collection')}>
+              <button type="button" className="btn-link" onClick={() => navigate('/orders')}>
                 Collection
               </button>
               , then refresh totals.
